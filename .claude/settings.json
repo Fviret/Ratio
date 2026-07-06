@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__searchJiraIssuesUsingJql",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__getJiraIssue",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__getTransitionsForJiraIssue",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__getAccessibleAtlassianResources",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__getJiraIssueTypeMetaWithFields",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__getVisibleJiraProjects",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__getJiraProjectIssueTypesMetadata",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__transitionJiraIssue",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__addCommentToJiraIssue",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__createJiraIssue",
+      "mcp__63e9c0df-f208-4834-b4e7-40fc804ec9fc__createIssueLink"
+    ]
+  }
+}
