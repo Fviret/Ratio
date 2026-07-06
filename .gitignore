@@ -40,6 +40,9 @@ yarn-error.log*
 # claude code local settings (personal permissions, not shared)
 .claude/settings.local.json
 
+# notes de dev locales (contournements, astuces debug) — jamais sur le repo public
+DEV_LOGIN_BYPASS.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
