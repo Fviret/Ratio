@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -28,6 +29,9 @@ export default async function Home() {
         Connecté en tant que <span className="font-medium">{user.email}</span>{" "}
         — organisation <span className="font-medium">{orgName}</span>
       </p>
+      <Link href="/decisions" className={buttonVariants()}>
+        Voir les décisions
+      </Link>
       <form action={signOut}>
         <Button variant="outline" type="submit">
           Se déconnecter

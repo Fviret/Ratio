@@ -44,6 +44,15 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - Un utilisateur sans `org_id` dans la table `users` est redirigé vers `/onboarding` (créer ou rejoindre une organisation) — cette vérification vit dans les pages, pas dans le proxy.
 - Convention pour toute nouvelle route/page protégée : récupérer l'utilisateur via `src/lib/supabase/server.ts`, `redirect("/login")` si absent (défense en profondeur, le proxy le fait déjà), puis filtrer toutes les requêtes DB par `org_id` de l'utilisateur (RLS désactivée, voir section Supabase).
 
+## Décisions (CRUD)
+
+- Routes sous `src/app/decisions/` : `page.tsx` (liste), `new/page.tsx` (formulaire de création), `[id]/page.tsx` (détail), `actions.ts` (Server Actions).
+- `src/lib/auth.ts` (`requireOrgUser`) centralise la récupération de l'utilisateur + `org_id` pour toute page/action protégée qui a besoin de l'organisation courante (login/onboarding redirigent automatiquement si absent).
+- Toute requête sur `decisions` filtre par `eq("org_id", orgId)` (RLS désactivée, voir section Supabase) ; `created_by` est renseigné automatiquement depuis la session, jamais depuis un champ de formulaire.
+- `options_json` est un champ libre `{ notes: string }` alimenté par un simple textarea — pas de sous-formulaire structuré tant que l'extraction LLM (semaine 2) n'impose pas un schéma plus riche.
+- shadcn/ui : le `Button` de ce projet est basé sur `@base-ui/react` (pas Radix) et n'a **pas** de prop `asChild` — pour un lien qui doit avoir le style d'un bouton, appliquer `buttonVariants({...})` en `className` sur le `<Link>`, ne pas essayer `<Button asChild>`.
+- Un conteneur `flex flex-col` centré avec `mx-auto max-w-*` doit aussi porter `w-full`, sinon il se réduit à la largeur de son contenu (shrink-to-fit) au lieu de remplir la largeur max — piège rencontré sur `/decisions` et `/onboarding`.
+
 ## Gestion de projet
 
 - Backlog et suivi : Jira projet `RAT` (https://floviret.atlassian.net/jira/software/projects/RAT/boards/35), un ticket = une feature du roadmap.

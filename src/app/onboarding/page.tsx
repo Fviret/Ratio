@@ -31,7 +31,7 @@ export default async function OnboardingPage() {
     .order("name");
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 p-4">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 p-4">
       <Card>
         <CardHeader>
           <CardTitle>Créer une organisation</CardTitle>

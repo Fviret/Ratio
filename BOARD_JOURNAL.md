@@ -53,3 +53,14 @@ Format :
 - **Vérifié en conditions réelles, de bout en bout** : lien magique envoyé à flo.viret@gmail.com, récupéré et lu via l'outil Gmail, lien suivi dans le navigateur de preview, organisation "Ratio Demo" créée et persistée en base (vérifié via l'API REST Supabase), déconnexion et protection de route (`/` → redirection `/login` si non connecté) confirmées.
 - `pnpm lint`, `tsc --noEmit` et `pnpm build` passent sans erreur.
 - `CLAUDE.md` mis à jour : section Auth (flow magic link/PKCE, rôle du proxy, convention org_id pour les nouvelles routes protégées).
+
+## 2026-07-06 (suite 4)
+
+- **[RAT-5](https://floviret.atlassian.net/browse/RAT-5) démarré et complété** : CRUD décision manuel, sans LLM.
+- Routes `src/app/decisions/` : liste (`page.tsx`), formulaire de création (`new/page.tsx`), détail (`[id]/page.tsx`), Server Action `createDecision` (`actions.ts`).
+- `src/lib/auth.ts` ajouté (`requireOrgUser`) pour factoriser la récupération utilisateur + `org_id`, réutilisé par les pages decisions.
+- Champs du formulaire : titre, contexte, options (texte libre → `options_json.notes`), décision, rationale, décideur, stakeholders (liste séparée par virgules → `text[]`). `org_id` et `created_by` toujours dérivés de la session, jamais du formulaire.
+- Deux corrections découvertes en testant dans le navigateur : (1) le composant `Button` shadcn de ce projet est basé sur `@base-ui/react`, pas Radix — pas de prop `asChild` ; les liens stylés comme des boutons utilisent `buttonVariants({...})` en `className` sur `<Link>`. (2) un conteneur `flex flex-col mx-auto max-w-*` sans `w-full` se réduit à son contenu (shrink-to-fit) — corrigé sur `/decisions` et `/onboarding`.
+- **Vérifié en conditions réelles** : reconnexion par magic link (nouvel email lu via Gmail), création d'une décision de test via le formulaire, redirection vers la page détail, decision visible dans la liste avec le bon layout. Donnée de test supprimée après vérification (via l'API REST Supabase) pour ne pas polluer la base.
+- `pnpm lint`, `tsc --noEmit` et `pnpm build` passent sans erreur.
+- `CLAUDE.md` mis à jour : section Décisions (CRUD) — structure des routes, convention `requireOrgUser`, pièges shadcn/Tailwind rencontrés.
