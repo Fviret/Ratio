@@ -22,7 +22,16 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 
 - `src/app` — routes App Router
 - `src/components/ui` — composants shadcn/ui
-- `src/lib` — utilitaires (`utils.ts`, futur client Supabase, etc.)
+- `src/lib` — utilitaires (`utils.ts`, `supabase.ts`)
+- `supabase/migrations` — schéma DB versionné (source de vérité, appliqué avec `supabase db push`)
+
+## Supabase
+
+- Projet `ratio`, région `eu-west-1`, lié via `supabase link` (config dans `supabase/config.toml`, sans secret).
+- `src/lib/supabase.ts` expose deux clients : `createBrowserSupabaseClient()` (clé anon, côté client) et `createServiceRoleSupabaseClient()` (clé service_role, **côté serveur uniquement** — ne jamais l'exposer au client).
+- Schéma v1 (`organizations`, `users`, `decisions`, `decision_links`) + extension `pgvector` : voir `supabase/migrations/20260706150000_init_schema.sql`.
+- RLS non activée pour le MVP semaine 1 (isolation multi-tenant prévue en phase 2, voir `RATIO_STARTER.md`) — toute lecture/écriture doit donc filtrer explicitement par `org_id` côté application.
+- Nouvelle évolution de schéma → nouveau fichier dans `supabase/migrations`, jamais d'édition d'une migration déjà appliquée.
 
 ## Gestion de projet
 
