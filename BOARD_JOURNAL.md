@@ -42,3 +42,14 @@ Format :
 - `.env.local` renseigné (URL, clé anon, clé service_role, mot de passe DB généré aléatoirement) — non commité. `.env.example` ajouté comme template (exception ajoutée à `.gitignore`).
 - Vérifié : `pnpm build` passe (Next.js compile avec `.env.local` chargé), lint et typecheck OK.
 - `CLAUDE.md` mis à jour : section Supabase (clients, schéma, convention RLS/org_id, workflow des migrations).
+
+## 2026-07-06 (suite 3)
+
+- **[RAT-4](https://floviret.atlassian.net/browse/RAT-4) démarré et complété** : auth magic link + création d'organisation.
+- Restructuration des clients Supabase en `src/lib/supabase/` (`client.ts`, `server.ts`, `admin.ts`, `middleware.ts`) avec `@supabase/ssr` pour une session basée cookies compatible App Router ; suppression de l'ancien `src/lib/supabase.ts` flat.
+- `src/proxy.ts` ajouté pour le rafraîchissement de session — Next.js 16 a renommé la convention `middleware.ts` en `proxy.ts` (avertissement de dépréciation détecté et corrigé, voir `node_modules/next/dist/docs`).
+- Pages : `/login` (formulaire email, `signInWithOtp`), `/auth/confirm` (route handler, échange du `code` PKCE via `exchangeCodeForSession` — le template email par défaut de Supabase utilise ce flow, pas le `token_hash`/`verifyOtp` initialement supposé), `/onboarding` (créer ou rejoindre une organisation), `/` (dashboard minimal + déconnexion).
+- Config Auth Supabase mise à jour via l'API Management (`uri_allow_list` → `http://localhost:3000/**`) pour autoriser la redirection locale.
+- **Vérifié en conditions réelles, de bout en bout** : lien magique envoyé à flo.viret@gmail.com, récupéré et lu via l'outil Gmail, lien suivi dans le navigateur de preview, organisation "Ratio Demo" créée et persistée en base (vérifié via l'API REST Supabase), déconnexion et protection de route (`/` → redirection `/login` si non connecté) confirmées.
+- `pnpm lint`, `tsc --noEmit` et `pnpm build` passent sans erreur.
+- `CLAUDE.md` mis à jour : section Auth (flow magic link/PKCE, rôle du proxy, convention org_id pour les nouvelles routes protégées).
