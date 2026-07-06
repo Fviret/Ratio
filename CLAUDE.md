@@ -15,8 +15,8 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 
 ## Environnement
 
-- Node **20** requis (`.nvmrc` à la racine — `nvm use`). Ce repo utilise `pnpm`, pas `npm`/`yarn`.
-- `pnpm install`, `pnpm dev`, `pnpm lint`, `pnpm build`
+- Node **20** requis (`.nvmrc` à la racine — `nvm use`). Ce repo utilise `pnpm`, pas `npm`/`yarn` (version figée via `packageManager` dans `package.json`).
+- `pnpm install`, `pnpm dev`, `pnpm lint`, `pnpm typecheck`, `pnpm build`
 
 ## Structure
 
@@ -52,6 +52,12 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - `options_json` est un champ libre `{ notes: string }` alimenté par un simple textarea — pas de sous-formulaire structuré tant que l'extraction LLM (semaine 2) n'impose pas un schéma plus riche.
 - shadcn/ui : le `Button` de ce projet est basé sur `@base-ui/react` (pas Radix) et n'a **pas** de prop `asChild` — pour un lien qui doit avoir le style d'un bouton, appliquer `buttonVariants({...})` en `className` sur le `<Link>`, ne pas essayer `<Button asChild>`.
 - Un conteneur `flex flex-col` centré avec `mx-auto max-w-*` doit aussi porter `w-full`, sinon il se réduit à la largeur de son contenu (shrink-to-fit) au lieu de remplir la largeur max — piège rencontré sur `/decisions` et `/onboarding`.
+
+## CI
+
+- `.github/workflows/ci.yml` : sur chaque PR et push sur `main` — install (`--frozen-lockfile`), `pnpm lint`, `pnpm typecheck`, `pnpm build`. Pas de step de tests dédié : aucun test n'existe encore dans le repo (le premier jeu d'evals arrive avec l'extraction LLM en semaine 2).
+- `main` est protégée : le check `ci` doit passer avant de pouvoir merger une PR (`required_status_checks`, configuré via l'API GitHub).
+- Le repo `Fviret/Ratio` est **public** — nécessaire pour la protection de branche (GitHub ne l'autorise pas sur un repo privé du plan gratuit). Décision prise le 2026-07-06, voir `BOARD_JOURNAL.md`.
 
 ## Gestion de projet
 

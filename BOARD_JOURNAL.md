@@ -64,3 +64,13 @@ Format :
 - **Vérifié en conditions réelles** : reconnexion par magic link (nouvel email lu via Gmail), création d'une décision de test via le formulaire, redirection vers la page détail, decision visible dans la liste avec le bon layout. Donnée de test supprimée après vérification (via l'API REST Supabase) pour ne pas polluer la base.
 - `pnpm lint`, `tsc --noEmit` et `pnpm build` passent sans erreur.
 - `CLAUDE.md` mis à jour : section Décisions (CRUD) — structure des routes, convention `requireOrgUser`, pièges shadcn/Tailwind rencontrés.
+
+## 2026-07-06 (suite 5)
+
+- **[RAT-6](https://floviret.atlassian.net/browse/RAT-6) démarré et complété** : CI GitHub Actions.
+- `.github/workflows/ci.yml` : sur chaque PR et push `main` — install (frozen lockfile), `pnpm lint`, `pnpm typecheck` (nouveau script ajouté), `pnpm build`. Pas de step tests dédié — aucun test n'existe encore dans le repo (les evals LLM arrivent en semaine 2).
+- `packageManager: pnpm@10.34.4` ajouté à `package.json` pour figer la version utilisée par `pnpm/action-setup` en CI.
+- **Décision notable** : le critère "PR bloquée si le workflow échoue" nécessite la protection de branche GitHub, indisponible sur un repo **privé** du plan gratuit (GitHub demande de passer sur Pro ou de rendre le repo public). Après validation explicite, le repo **`Fviret/Ratio` est passé en visibilité publique** pour débloquer cette fonctionnalité gratuitement.
+- Protection de branche activée sur `main` via l'API GitHub : le check `ci` est requis avant de pouvoir merger une PR (`required_status_checks.strict = true`), force-push et suppression de branche désactivés.
+- Vérifié : premier run du workflow déclenché par le push sur `main`, conclusion `success`.
+- `CLAUDE.md` mis à jour : nouvelle section CI (contenu du workflow, protection de branche, note sur la visibilité publique du repo).
