@@ -13,6 +13,8 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - Embeddings OpenAI `text-embedding-3-small` pour la recherche sémantique
 - Déploiement Vercel
 
+Pas encore implémentés (semaine 2) : `ANTHROPIC_API_KEY` et `OPENAI_API_KEY` sont déjà dans `.env.example`/`.env.local`. Comme `SUPABASE_SERVICE_ROLE_KEY`, ce sont des clés **côté serveur uniquement** — jamais de préfixe `NEXT_PUBLIC_`, jamais d'appel direct depuis un Client Component ; elles ne doivent être lues que dans des Server Actions/Route Handlers.
+
 ## Environnement
 
 - Node **20** requis (`.nvmrc` à la racine — `nvm use`). Ce repo utilise `pnpm`, pas `npm`/`yarn` (version figée via `packageManager` dans `package.json`).
@@ -52,6 +54,13 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - `options_json` est un champ libre `{ notes: string }` alimenté par un simple textarea — pas de sous-formulaire structuré tant que l'extraction LLM (semaine 2) n'impose pas un schéma plus riche.
 - shadcn/ui : le `Button` de ce projet est basé sur `@base-ui/react` (pas Radix) et n'a **pas** de prop `asChild` — pour un lien qui doit avoir le style d'un bouton, appliquer `buttonVariants({...})` en `className` sur le `<Link>`, ne pas essayer `<Button asChild>`.
 - Un conteneur `flex flex-col` centré avec `mx-auto max-w-*` doit aussi porter `w-full`, sinon il se réduit à la largeur de son contenu (shrink-to-fit) au lieu de remplir la largeur max — piège rencontré sur `/decisions` et `/onboarding`.
+
+## Conventions
+
+- **Langue** : tout le code (fichiers, variables, fonctions) en anglais ; tout ce qui est visible par un humain (UI, commentaires, docs, commits) en français.
+- **Gestion d'erreurs** : les Server Actions ne catchent pas les erreurs Supabase, elles les laissent remonter (`if (error) throw error`) — capturées par la error boundary racine `src/app/error.tsx` (React Error Boundary, prop `unstable_retry` — nommage spécifique à Next.js 16, pas `reset` comme dans les versions précédentes). `src/app/not-found.tsx` gère les 404 (déclenché par `notFound()`, ex. décision introuvable ou hors organisation). Pas encore de retour d'erreur inline dans les formulaires (ex. nom d'organisation en doublon) — à revisiter si ça devient un point de friction réel en usage.
+- **Tests** : aucun test automatisé pour l'instant. Volontaire — le premier jeu de tests utile au projet sera le jeu d'evals de l'extraction LLM (semaine 2 du `RATIO_STARTER.md`), pas des tests unitaires de CRUD qui apporteraient peu face à l'effort de setup à ce stade du MVP.
+- Avant d'utiliser une API Next.js dont le comportement pourrait différer de ce que tu crois savoir (ce projet est sur Next.js 16, plus récent que la plupart des connaissances d'entraînement) : vérifier dans `node_modules/next/dist/docs` plutôt que de supposer — voir `AGENTS.md`.
 
 ## CI
 

@@ -13,11 +13,12 @@ import {
 export default async function DecisionsPage() {
   const { supabase, orgId } = await requireOrgUser();
 
-  const { data: decisions } = await supabase
+  const { data: decisions, error } = await supabase
     .from("decisions")
     .select("id, title, decider, status, created_at")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false });
+  if (error) throw error;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 py-12">

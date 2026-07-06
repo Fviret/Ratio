@@ -18,17 +18,19 @@ export default async function OnboardingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: existingUser } = await supabase
+  const { data: existingUser, error: existingUserError } = await supabase
     .from("users")
     .select("org_id")
     .eq("id", user.id)
     .maybeSingle();
+  if (existingUserError) throw existingUserError;
   if (existingUser?.org_id) redirect("/");
 
-  const { data: organizations } = await supabase
+  const { data: organizations, error: organizationsError } = await supabase
     .from("organizations")
     .select("id, name")
     .order("name");
+  if (organizationsError) throw organizationsError;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 p-4">

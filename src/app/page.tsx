@@ -11,12 +11,13 @@ export default async function Home() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("users")
     .select("org_id, organizations (name)")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (error) throw error;
   if (!profile?.org_id) redirect("/onboarding");
 
   const orgName = (

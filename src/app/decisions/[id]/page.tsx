@@ -33,7 +33,7 @@ export default async function DecisionDetailPage({
   const { id } = await params;
   const { supabase, orgId } = await requireOrgUser();
 
-  const { data: decision } = await supabase
+  const { data: decision, error } = await supabase
     .from("decisions")
     .select(
       "title, status, context, options_json, decision_text, rationale, decider, stakeholders, created_at",
@@ -42,6 +42,7 @@ export default async function DecisionDetailPage({
     .eq("org_id", orgId)
     .maybeSingle();
 
+  if (error) throw error;
   if (!decision) notFound();
 
   const options = (decision.options_json as { notes?: string } | null)?.notes;
