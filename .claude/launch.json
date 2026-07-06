@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ratio-dev",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "PATH=/Users/floviret/.nvm/versions/node/v20.20.2/bin:$PATH pnpm run dev"],
+      "port": 3000
+    }
+  ]
+}
