@@ -127,3 +127,16 @@ Format :
 - Décision : le jeu d'evals reste **hors CI** (appels API réels payants et non déterministes) — documenté dans `CLAUDE.md`, à lancer manuellement.
 - `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
 - `CLAUDE.md` mis à jour : section Extraction LLM (evals) et section Conventions (Tests).
+
+## 2026-07-07 — RAT-13 : audit de fin de Semaine 2
+
+- **[RAT-13](https://floviret.atlassian.net/browse/RAT-13) démarré et complété** : audit du code de la Semaine 2 (extraction LLM, RAT-9 à RAT-12) via le subagent `auditeur` (lecture seule), sur `src/lib/extract.ts`, `src/app/api/extract/route.ts`, `src/app/decisions/new/page.tsx`, `src/app/decisions/actions.ts`, `evals/threads.ts`, `evals/run.ts`.
+- **Aucun point bloquant** : pas de fuite de données inter-organisations dans ce périmètre (`/api/extract` ne touche pas la base ; `createDecision` continue de dériver `org_id`/`created_by` de la session, jamais du formulaire — pas de régression sur la vulnérabilité trouvée en RAT-7).
+- **4 points importants trouvés et corrigés** :
+  1. `request.json()` dans `route.ts` était appelé hors du `try/catch` — un corps de requête non-JSON provoquait un crash 500 brut au lieu du JSON `{ error }` structuré exigé par RAT-9. Corrigé : parsing du body dans son propre `try/catch` (400 explicite).
+  2. Aucune limite de taille sur le texte envoyé à l'API Anthropic (service tiers hors UE) — ajout de `MAX_TEXT_LENGTH` (20 000 caractères), 400 explicite si dépassé.
+  3. `/decisions/new` était un Client Component pur, sans garde serveur (`requireOrgUser`), contrairement aux autres pages `decisions/` — un utilisateur authentifié mais sans organisation pouvait déclencher des appels payants à l'extraction avant d'échouer silencieusement à la sauvegarde. Corrigé : la page est redevenue un Server Component qui appelle `requireOrgUser()` puis rend le Client Component réel (extrait dans `new-decision-form.tsx`).
+  4. `DecisionCandidate`/`ExtractionResult` étaient redéfinis localement dans `new/page.tsx` en doublon des types déjà exportés par `src/lib/extract.ts` (risque de divergence silencieuse). Corrigé : import direct depuis `src/lib/extract.ts`.
+- **Suggestions notées, non corrigées** (pas bloquantes pour le MVP) : les `checks` d'`evals/run.ts` associent décisions et assertions par index positionnel plutôt que par contenu (faux négatif possible si l'ordre des décisions varie sur un thread multi-décisions) ; les assertions des evals portent sur des mots-clés déjà présents verbatim dans le texte d'entrée (signal faible contre l'hallucination/recopie) ; pas de rate limiting sur `/api/extract`. À revisiter si ça devient un problème réel en usage.
+- **Vérifié** : `pnpm lint`, `pnpm typecheck` et `pnpm build` passent (Node 20 requis, `nvm use` — un premier essai sous Node 18 par défaut avait fait échouer `pnpm build`). Testé en navigateur avec une session active : `/decisions/new` rend correctement le formulaire avec la garde serveur en place, extraction d'un thread de test (`decision_found`) réalisée sans erreur réseau ni console.
+- `CLAUDE.md` mis à jour : section Décisions (CRUD) (structure Server/Client Component de `new/`) et section Extraction LLM (`MAX_TEXT_LENGTH`, parsing du body).

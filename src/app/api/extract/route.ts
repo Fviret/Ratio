@@ -7,6 +7,8 @@ import {
   ExtractionUnstructuredError,
 } from "@/lib/extract";
 
+const MAX_TEXT_LENGTH = 20_000;
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -16,10 +18,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "corps de requête JSON invalide" }, { status: 400 });
+  }
+
+  const text =
+    typeof (body as { text?: unknown })?.text === "string"
+      ? (body as { text: string }).text.trim()
+      : "";
   if (!text) {
     return NextResponse.json({ error: "champ 'text' manquant" }, { status: 400 });
+  }
+  if (text.length > MAX_TEXT_LENGTH) {
+    return NextResponse.json(
+      { error: `thread trop long (max ${MAX_TEXT_LENGTH} caractères)` },
+      { status: 400 },
+    );
   }
 
   try {
