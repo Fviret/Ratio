@@ -171,6 +171,16 @@ Format :
   - Page détail : layout correct, aucune régression de mise en page.
 - Aucune anomalie. Aucun ticket correctif ouvert.
 
+## 2026-07-07 (suite) — RAT-19 : UI de recherche
+
+- **[RAT-19](https://floviret.atlassian.net/browse/RAT-19) démarré et complété** : barre de recherche plein texte sur `/decisions`, badge de pertinence, enrichissement de la page détail.
+- **Architecture** : `decisions/page.tsx` reste Server Component (charge la liste complète côté serveur, `requireOrgUser`) et rend `DecisionsList` (Client Component extrait dans `decisions-list.tsx`) — même split Server/Client que `/decisions/new` (RAT-13).
+- **Barre de recherche** : formulaire (input + bouton « Rechercher »), soumission appelle `POST /api/search`, résultats remplacent la liste. En dehors du mode recherche (input vide), la liste pré-chargée côté serveur est affichée sans aucun appel réseau.
+- **Badge de pertinence** : valeur `rank real` retournée par `ts_rank` normalisée par le score max (premier résultat = 100 %) — affiché sous forme de badge « N % » sur chaque carte résultat. Normalisation choisie car `ts_rank` ne garantit pas des valeurs entre 0 et 1 ; le pourcentage relatif est plus lisible pour l'utilisateur.
+- **Page détail** : ajout de `decided_at` (date de décision si renseignée) et `source_raw` (thread brut, affiché en bas de fiche pour traçabilité) dans la requête et dans le rendu. Libellé « Stakeholders » francisé en « Parties prenantes ».
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
+- `CLAUDE.md` mis à jour : section Recherche (UI, normalisation du score, split Server/Client).
+
 ## 2026-07-07 (suite) — RAT-15 : clôture Semaine 2
 
 - **[RAT-15](https://floviret.atlassian.net/browse/RAT-15) démarré et complété** : consolidation du journal et clôture de l'Epic [RAT-8](https://floviret.atlassian.net/browse/RAT-8) — Semaine 2 Extraction LLM.

@@ -36,7 +36,7 @@ export default async function DecisionDetailPage({
   const { data: decision, error } = await supabase
     .from("decisions")
     .select(
-      "title, status, context, options_json, decision_text, rationale, decider, stakeholders, created_at",
+      "title, status, context, options_json, decision_text, rationale, decider, stakeholders, source_raw, decided_at, created_at",
     )
     .eq("id", id)
     .eq("org_id", orgId)
@@ -66,9 +66,18 @@ export default async function DecisionDetailPage({
           <Field label="Rationale" value={decision.rationale} />
           <Field label="Décideur" value={decision.decider} />
           <Field
-            label="Stakeholders"
+            label="Parties prenantes"
             value={decision.stakeholders?.join(", ")}
           />
+          <Field
+            label="Date de décision"
+            value={
+              decision.decided_at
+                ? new Date(decision.decided_at).toLocaleDateString("fr-FR")
+                : null
+            }
+          />
+          <Field label="Thread source" value={decision.source_raw} />
         </CardContent>
       </Card>
     </div>
