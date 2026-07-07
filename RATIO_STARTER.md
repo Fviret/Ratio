@@ -24,15 +24,15 @@ Si ces 3 promesses ne convainquent pas 5 PO en démo, le bot Teams ne servira à
 
 | Couche | Choix | Pourquoi |
 |---|---|---|
-| Framework | **Next.js 15 (App Router) + TypeScript** | Full-stack en un repo, API routes incluses, déploiement Vercel en 1 clic |
+| Framework | **Next.js 16 (App Router) + TypeScript** | Full-stack en un repo, API routes incluses, déploiement Vercel en 1 clic |
 | UI | **Tailwind CSS + shadcn/ui** | Rapide, propre, Claude Code le maîtrise parfaitement |
-| Base de données | **Supabase (Postgres + pgvector)** | Auth incluse, vector search natif, free tier généreux, RGPD (région EU disponible) |
+| Base de données | **Supabase (Postgres + pgvector)** | Auth incluse, free tier généreux, RGPD (région EU disponible) |
 | Auth | **Supabase Auth** (magic link email) | Zéro friction, pas de gestion de mots de passe |
-| LLM extraction | **API Anthropic — claude-sonnet** | Extraction structurée thread → fiche décision (JSON) |
-| Embeddings | **API OpenAI `text-embedding-3-small`** (ou Voyage AI) | Standard, pas cher, compatible pgvector |
+| LLM extraction | **API Anthropic — claude-sonnet-5** | Extraction structurée thread → fiche décision (sorties structurées JSON) |
+| Recherche | **Postgres full-text search** (`tsvector` + `websearch_to_tsquery`) | Natif Supabase, zéro coût variable, suffisant pour le MVP — embeddings OpenAI reportés en phase 2 (décision Semaine 3) |
 | Déploiement | **Vercel** (free tier) | Preview deployments par PR = démo-able en continu |
-| Repo & CI | **GitHub + GitHub Actions** | Lint + tests sur chaque PR |
-| Gestion projet | **Jira + MCP Atlassian** | Reproduire le workflow Pédomètre Android : backlog généré, exécution ticket par ticket |
+| Repo & CI | **GitHub + GitHub Actions** | Lint + typecheck + build sur chaque PR |
+| Gestion projet | **Jira + MCP Atlassian** | Backlog généré, exécution ticket par ticket avec Claude Code |
 
 **Coût estimé MVP** : ~0-15 €/mois (free tiers + quelques euros d'API LLM).
 
@@ -83,11 +83,11 @@ decision_links
 - [ ] Petit jeu d'evals : 10 threads de test avec sorties attendues
 - **Livrable** : je colle un thread Teams/Slack copié, j'obtiens une fiche décision propre
 
-### Semaine 3 — Recherche sémantique
-- [ ] Génération d'embedding à la sauvegarde de chaque décision
-- [ ] Recherche : requête en langage naturel → embedding → similarité cosinus pgvector → top 5
-- [ ] Reranking / seuil de pertinence pour éviter les faux positifs
-- [ ] UI de recherche + page détail décision avec tout le contexte
+### Semaine 3 — Recherche
+- [x] Infrastructure full-text search : colonne `search_vector` générée, index GIN, fonction `search_decisions` (pivot OpenAI → Postgres natif)
+- [x] Endpoint `POST /api/search` : requête en langage naturel → `websearch_to_tsquery` → résultats triés par `ts_rank`
+- [x] UI de recherche : barre de recherche sur `/decisions`, résultats avec badge de pertinence normalisé
+- [x] Page détail enrichie : tous les champs affichés (`context`, `options`, `rationale`, `decided_at`, `source_raw`)
 - **Livrable** : "on avait dit quoi sur la pagination ?" → la bonne décision remonte
 
 ### Semaine 4 — Le "resurfacing" (la vraie promesse)
@@ -97,6 +97,8 @@ decision_links
 - **Livrable** : quand quelqu'un rouvre un débat, Ratio ressort l'historique
 
 ### Semaine 5 — Polish & démo
+- [ ] **Édition d'une décision** : page `/decisions/[id]/edit` (même formulaire que la création, pré-rempli), Server Action `updateDecision` — les utilisateurs veulent corriger une fiche extraite sans la recréer de zéro
+- [ ] **Suppression d'une décision** : bouton sur la page détail (avec confirmation), Server Action `deleteDecision` — nécessaire pour nettoyer les fiches créées vides ou par erreur ; suppression dure pour le MVP (soft-delete avec statut `archived` reporté en phase 2 pour préserver l'historique)
 - [ ] Dataset de démo réaliste (15-20 décisions inspirées EDF/BNP, anonymisées)
 - [ ] Onboarding : empty state, exemple pré-rempli
 - [ ] Landing page 1 écran (promesse + capture + CTA "demander une démo")
@@ -140,8 +142,8 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
 ```
+> `OPENAI_API_KEY` retirée — pivot vers Postgres full-text search en Semaine 3.
 
 ---
 

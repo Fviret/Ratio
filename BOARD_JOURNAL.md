@@ -193,6 +193,18 @@ Format :
 - **Suggestions notées, non corrigées** (non bloquantes pour le MVP) : SECURITY INVOKER + search_path non déclarés dans la fonction SQL ; EXECUTE PUBLIC par défaut sur `search_decisions` (à restreindre à `authenticated` en même temps que l'activation de RLS en phase 2) ; stop-words français retournent 0 résultat sans explication ; `source_raw` affiché en intégralité sans troncature ; normalisation du score peut afficher de très faibles pourcentages.
 - `pnpm lint`, `pnpm typecheck` passent.
 
+## 2026-07-07 (suite) — RAT-21 : test manuel de fin de Semaine 3
+
+- **[RAT-21](https://floviret.atlassian.net/browse/RAT-21) démarré et complété** : test manuel du parcours complet de la Semaine 3 en conditions réelles (session authentifiée via contournement admin Supabase, nettoyé après usage).
+- **6 scénarios validés, aucune anomalie** :
+  1. Recherche avec résultat : "déploiement" → 1 résultat "Choix de la plateforme de déploiement" avec badge 100 % — OK.
+  2. Aucun résultat : "fusée spatiale interstellaire" → message "Aucun résultat pour «...»" — OK.
+  3. Vider la barre : input vidé → liste complète réapparaît (5 décisions, aucun badge %) sans appel réseau — OK.
+  4. Page détail enrichie : champ "Thread source" affiché (`source_raw` renseigné) ; "Date de décision" absent quand `decided_at` est null (comportement attendu du composant `<Field>`) — OK.
+  5. Badge de pertinence relatif : 1 seul résultat de recherche → normalisé à 100 % — OK.
+  6. Non-régression formulaire de création : zone de collage de thread + tous les champs manuels intacts, aucune régression — OK.
+- Note : les données de test existantes n'ont pas assez de chevauchement pour tester les scores relatifs multi-résultats (ex. 100 % / 60 % / 40 %) — à retester avec le dataset de démo (Semaine 5, RAT prévu).
+
 ## 2026-07-07 (suite) — RAT-15 : clôture Semaine 2
 
 - **[RAT-15](https://floviret.atlassian.net/browse/RAT-15) démarré et complété** : consolidation du journal et clôture de l'Epic [RAT-8](https://floviret.atlassian.net/browse/RAT-8) — Semaine 2 Extraction LLM.
