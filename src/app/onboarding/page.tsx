@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "Bienvenue" };
 import { createOrganization, joinOrganization } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

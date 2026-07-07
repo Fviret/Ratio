@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RATIO",
+  title: {
+    default: "Ratio",
+    template: "%s — Ratio",
+  },
   description:
     "Le décision-log pour Product Owners : capturer, retrouver et resurfacer le contexte des décisions produit.",
 };

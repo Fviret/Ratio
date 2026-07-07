@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { requireOrgUser } from "@/lib/auth";
 import { buttonVariants } from "@/components/ui/button";
 import { DecisionsList } from "./decisions-list";
+
+export const metadata: Metadata = { title: "Décisions" };
 
 export default async function DecisionsPage() {
   const { supabase, orgId } = await requireOrgUser();

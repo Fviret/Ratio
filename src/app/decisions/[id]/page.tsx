@@ -1,7 +1,23 @@
 import { Fragment } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireOrgUser } from "@/lib/auth";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const { supabase, orgId } = await requireOrgUser();
+  const { data } = await supabase
+    .from("decisions")
+    .select("title")
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  return { title: data?.title ?? "Décision" };
+}
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -133,6 +149,12 @@ export default async function DecisionDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl p-4 py-12 flex flex-col gap-6">
+      <Link
+        href="/decisions"
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Décisions
+      </Link>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2">

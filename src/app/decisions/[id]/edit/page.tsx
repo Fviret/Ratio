@@ -1,6 +1,22 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireOrgUser } from "@/lib/auth";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const { supabase, orgId } = await requireOrgUser();
+  const { data } = await supabase
+    .from("decisions")
+    .select("title")
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  return { title: data ? `Modifier — ${data.title}` : "Modifier" };
+}
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +53,12 @@ export default async function EditDecisionPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl p-4 py-12 flex flex-col gap-6">
+      <Link
+        href={`/decisions/${id}`}
+        className="text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Retour à la décision
+      </Link>
       <Card>
         <CardHeader>
           <CardTitle>Modifier la décision</CardTitle>

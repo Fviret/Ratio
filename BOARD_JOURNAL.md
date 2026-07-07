@@ -379,3 +379,57 @@ Format :
   - `STATUS_LABELS` défini localement dans `decisions-list.tsx` (Client Component) plutôt qu'exporté depuis `[id]/page.tsx` — évite de coupler un Client Component à un module Server Component.
 - **État du MVP à fin Semaine 5** : CRUD complet (créer, lire, éditer, supprimer), extraction LLM, recherche full-text, liens entre décisions, stepper de statut, données de démo prêtes, landing page publique. Semaine 6 : polish final et déploiement Vercel.
 - **Points de vigilance reportés** : même liste qu'en Semaine 4 (unicité de lien sans message explicite, transitions irréversibles à confirmer en usage) + suggestion de double-soumission sur DeleteDecisionButton (non bloquant).
+
+## 2026-07-07 (suite) — Semaine 6 : déploiement & polish UX
+
+## 2026-07-07 (suite) — RAT-40 : déploiement Vercel
+
+- **[RAT-40](https://floviret.atlassian.net/browse/RAT-40) démarré** : préparation technique du déploiement — code prêt, aucune modification requise.
+  - Pas de références `localhost` dans le code source.
+  - `next.config.ts` minimal, pas de `vercel.json` requis (Next.js auto-détecté par Vercel).
+  - `packageManager: "pnpm@10.34.4"` dans `package.json` — Vercel auto-détecte pnpm.
+  - `.env.example` nettoyé : retrait de `OPENAI_API_KEY` (abandonnée en Semaine 3).
+  - `supabase/config.toml` : `site_url` pointe vers `127.0.0.1:3000` (config CLI locale uniquement — la config de production se fait dans le dashboard Supabase).
+- **Actions manuelles requises** (hors périmètre code) :
+  1. Vercel : importer `Fviret/Ratio`, déploiement auto sur push `main`, variables d'env (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`).
+  2. Supabase dashboard → Authentication → URL Configuration → Site URL + Redirect URL vers le domaine Vercel.
+- URL de production : à compléter après configuration Vercel.
+
+## 2026-07-07 (suite) — RAT-41 : polish UX final
+
+- **[RAT-41](https://floviret.atlassian.net/browse/RAT-41) démarré et complété** : 4 améliorations UX pour la démo.
+  - Template de titre : `layout.tsx` → `title: { default: "Ratio", template: "%s — Ratio" }`. Chaque page exporte son propre `metadata.title` ; la page détail et la page édition utilisent `generateMetadata` pour inclure le titre de la décision.
+  - Lien "← Décisions" ajouté en haut de `[id]/page.tsx` et `new-decision-form.tsx`.
+  - Lien "← Retour à la décision" ajouté en haut de `[id]/edit/page.tsx`.
+  - Tri décroissant par `created_at` déjà en place depuis Semaine 3 — aucun changement nécessaire.
+
+## 2026-07-07 (suite) — RAT-42 : audit de fin de Semaine 6
+
+- **[RAT-42](https://floviret.atlassian.net/browse/RAT-42) démarré et complété** : audit du code Semaine 6 par le subagent `auditeur` — 2 points importants identifiés, corrigés immédiatement.
+  1. `generateMetadata` dans `[id]/page.tsx` et `[id]/edit/page.tsx` utilisait `createClient()` (anon, sans filtre `org_id`) — avec RLS désactivée, le titre d'une décision d'une autre organisation était accessible via la balise `<title>` (fuite inter-org). Correction : `requireOrgUser()` + `.eq("org_id", orgId)` dans les deux `generateMetadata`.
+  2. 3 suggestions de placement d'imports (après `export const`) — non bloquant, ESLint ne l'impose pas, laissé tel quel.
+- **Décision technique** : `generateMetadata` peut appeler `requireOrgUser()` directement — si le `redirect()` est levé (utilisateur non authentifié ou sans org), Next.js le propage correctement et redirige le navigateur, même depuis la phase de génération de métadonnées.
+
+## 2026-07-07 (suite) — RAT-43 : test manuel de fin de Semaine 6
+
+- **[RAT-43](https://floviret.atlassian.net/browse/RAT-43) démarré et complété** : 7 scénarios validés en prévisualisation locale.
+  - `<title>` liste : "Décisions — Ratio" ✅
+  - `<title>` détail : "[titre décision] — Ratio" ✅
+  - `<title>` édition : "Modifier — [titre décision] — Ratio" ✅
+  - `<title>` nouvelle décision : "Nouvelle décision — Ratio" ✅
+  - Lien "← Décisions" visible sur page détail et nouvelle décision ✅
+  - Lien "← Retour à la décision" visible sur page édition ✅
+  - `generateMetadata` filtre bien par `org_id` (correction RAT-42 vérifiée) ✅
+  - Test en production (URL Vercel) : conditionné à la complétion de RAT-40 par l'utilisateur.
+
+## 2026-07-07 (suite) — RAT-44 : clôture Semaine 6
+
+- **[RAT-44](https://floviret.atlassian.net/browse/RAT-44) démarré et complété** : journal de bord Semaine 6 rédigé, Epic [RAT-39](https://floviret.atlassian.net/browse/RAT-39) clôturé.
+- **Bilan Semaine 6** : 5 tickets livrés côté code (RAT-40 à RAT-44), RAT-40 en attente d'action manuelle utilisateur (Vercel + Supabase dashboard).
+  - RAT-40 : code prêt pour Vercel, nettoyage `.env.example`, checklist d'actions manuelles fournie.
+  - RAT-41 : template de titre `%s — Ratio`, liens "retour" sur 3 pages, `generateMetadata` pour titres dynamiques.
+  - RAT-42 : audit — correction fuite inter-org dans `generateMetadata` (filtre `org_id` manquant).
+  - RAT-43 : tests manuels — 7 scénarios validés sans anomalie en local.
+  - RAT-44 : journal + clôture Epic.
+- **Décision go/no-go bot Teams** : reportée — le MVP code est complet mais le déploiement Vercel (RAT-40 actions manuelles) n'est pas encore finalisé. Go/no-go à reconsidérer après les premières démos utilisateurs.
+- **État du MVP à fin Semaine 6** : application complète, prête pour la production. Déploiement Vercel en attente de la configuration manuelle de l'utilisateur. Code côté : toutes les fonctionnalités MVP livrées (CRUD décisions, extraction LLM, recherche full-text, liens, statuts, démo, landing page, polish UX).

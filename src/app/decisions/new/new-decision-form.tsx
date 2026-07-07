@@ -135,6 +135,9 @@ export function NewDecisionForm() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 py-12">
+      <Link href="/decisions" className="text-sm text-muted-foreground hover:text-foreground">
+        ← Décisions
+      </Link>
       <Card>
         <CardHeader>
           <CardTitle>Coller un thread</CardTitle>
