@@ -393,7 +393,7 @@ Format :
 - **Actions manuelles requises** (hors périmètre code) :
   1. Vercel : importer `Fviret/Ratio`, déploiement auto sur push `main`, variables d'env (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`).
   2. Supabase dashboard → Authentication → URL Configuration → Site URL + Redirect URL vers le domaine Vercel.
-- URL de production : à compléter après configuration Vercel.
+- URL de production : https://ratio-ntxmqwwxe-ratio1.vercel.app
 
 ## 2026-07-07 (suite) — RAT-41 : polish UX final
 
