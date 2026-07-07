@@ -205,6 +205,23 @@ Format :
   6. Non-régression formulaire de création : zone de collage de thread + tous les champs manuels intacts, aucune régression — OK.
 - Note : les données de test existantes n'ont pas assez de chevauchement pour tester les scores relatifs multi-résultats (ex. 100 % / 60 % / 40 %) — à retester avec le dataset de démo (Semaine 5, RAT prévu).
 
+## 2026-07-07 (suite) — RAT-22 : clôture Semaine 3
+
+- **[RAT-22](https://floviret.atlassian.net/browse/RAT-22) démarré et complété** : consolidation du journal et clôture de l'Epic [RAT-16](https://floviret.atlassian.net/browse/RAT-16) — Semaine 3 Recherche.
+- **Bilan Semaine 3** : 6 tickets livrés (RAT-17 à RAT-22), tous "Terminé".
+  - RAT-17 : infrastructure full-text search — migration `search_vector` + index GIN + fonction `search_decisions`.
+  - RAT-18 : endpoint `POST /api/search` — auth + org_id + conventions de robustesse (400/401/403/500 explicites).
+  - RAT-19 : UI de recherche — barre de recherche sur `/decisions`, badge de pertinence normalisé, page détail enrichie (`decided_at`, `source_raw`).
+  - RAT-20 : audit — 0 bloquant, 4 importants corrigés (faux 403, race condition, erreur silencieuse, label a11y WCAG 1.3.1).
+  - RAT-21 : test manuel — 6 scénarios validés sans anomalie.
+  - RAT-22 : journal de bord.
+- **Décision notable de la semaine — pivot OpenAI → Postgres full-text search** : abandon d'`text-embedding-3-small` (OpenAI) au profit de `tsvector` + `websearch_to_tsquery('french')` natif Supabase. Rationnel : friction de mise en place (compte, billing, clé API tierce) disproportionnée par rapport au coût réel ($0,0004 pour 50 décisions) et à la valeur ajoutée sur un corpus de quelques dizaines de décisions. Postgres full-text search couvre les besoins MVP ; embeddings sémantiques reportés en phase 2 si la recherche s'avère insuffisante en usage réel.
+- **Autres décisions techniques de la semaine** :
+  - Score de pertinence normalisé plutôt que raw `ts_rank` (valeurs non bornées entre 0 et 1) — 1er résultat = 100 %, les suivants en proportion relative ; plus lisible pour l'utilisateur.
+  - `AbortController` par requête de recherche pour éviter les race conditions (réponse stale écrasant la réponse récente).
+  - Édition et suppression de décision ajoutées au backlog Semaine 5 dans `RATIO_STARTER.md` — réflexe utilisateur prévisible, nécessaire avant la démo.
+- **Point de vigilance reporté en phase 2** : `EXECUTE` sur `search_decisions` accordé à `PUBLIC` par défaut (PostgreSQL) — à restreindre à `authenticated` en même temps que l'activation de RLS.
+
 ## 2026-07-07 (suite) — RAT-15 : clôture Semaine 2
 
 - **[RAT-15](https://floviret.atlassian.net/browse/RAT-15) démarré et complété** : consolidation du journal et clôture de l'Epic [RAT-8](https://floviret.atlassian.net/browse/RAT-8) — Semaine 2 Extraction LLM.
