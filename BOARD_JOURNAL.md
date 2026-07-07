@@ -140,3 +140,36 @@ Format :
 - **Suggestions notées, non corrigées** (pas bloquantes pour le MVP) : les `checks` d'`evals/run.ts` associent décisions et assertions par index positionnel plutôt que par contenu (faux négatif possible si l'ordre des décisions varie sur un thread multi-décisions) ; les assertions des evals portent sur des mots-clés déjà présents verbatim dans le texte d'entrée (signal faible contre l'hallucination/recopie) ; pas de rate limiting sur `/api/extract`. À revisiter si ça devient un problème réel en usage.
 - **Vérifié** : `pnpm lint`, `pnpm typecheck` et `pnpm build` passent (Node 20 requis, `nvm use` — un premier essai sous Node 18 par défaut avait fait échouer `pnpm build`). Testé en navigateur avec une session active : `/decisions/new` rend correctement le formulaire avec la garde serveur en place, extraction d'un thread de test (`decision_found`) réalisée sans erreur réseau ni console.
 - `CLAUDE.md` mis à jour : section Décisions (CRUD) (structure Server/Client Component de `new/`) et section Extraction LLM (`MAX_TEXT_LENGTH`, parsing du body).
+
+## 2026-07-07 (suite) — RAT-14 : test manuel de fin de Semaine 2
+
+- **[RAT-14](https://floviret.atlassian.net/browse/RAT-14) démarré et complété** : test manuel du parcours complet en conditions réelles, 9 scénarios validés sans anomalie.
+- **Scénarios testés** :
+  - Flux principal : décision claire extraite, formulaire pré-rempli, champ édité, sauvegarde → page détail correcte.
+  - Aucune décision : message informatif affiché, formulaire non touché et utilisable à la main.
+  - Décisions multiples : 2 candidats affichés, sélection du second, pré-remplissage correct.
+  - Saisie manuelle directe sans extraction : création et affichage OK.
+  - Titre manquant : champ `required` bloque la soumission navigateur.
+  - Thread > 20 000 caractères : message d'erreur "thread trop long" (400), pas de crash.
+  - Protection de route : accès direct à `/decisions/new` hors session → redirection `/login`.
+  - Liste des décisions : toutes les décisions créées listées correctement.
+  - Page détail : layout correct, aucune régression de mise en page.
+- Aucune anomalie. Aucun ticket correctif ouvert.
+
+## 2026-07-07 (suite) — RAT-15 : clôture Semaine 2
+
+- **[RAT-15](https://floviret.atlassian.net/browse/RAT-15) démarré et complété** : consolidation du journal et clôture de l'Epic [RAT-8](https://floviret.atlassian.net/browse/RAT-8) — Semaine 2 Extraction LLM.
+- **Bilan Semaine 2** : 7 tickets livrés (RAT-9 à RAT-15), tous "Terminé".
+  - RAT-9 : endpoint `/api/extract` — extraction LLM via `claude-sonnet-5`, sorties structurées, gestion d'erreurs exhaustive.
+  - RAT-10 : UI "coller un thread" — zone de collage + pré-remplissage éditable du formulaire manuel.
+  - RAT-11 : cas limites — contrat `{ status, message, decisions[] }` à 3 statuts, UI pour chaque cas.
+  - RAT-12 : jeu d'evals — 10 threads représentatifs, 10/10 au premier run ; logique d'extraction factorisée dans `src/lib/extract.ts`.
+  - RAT-13 : audit — 4 points importants corrigés (parsing JSON hors try/catch, taille max du texte, garde serveur manquante sur `/decisions/new`, duplication de types).
+  - RAT-14 : test manuel — 9 scénarios validés sans anomalie.
+  - RAT-15 : journal de bord.
+- **Décisions notables de la semaine** :
+  - Sorties structurées (`output_config.format` + `client.messages.parse()`) plutôt qu'un JSON demandé en prose — plus fiable, schéma garanti côté SDK.
+  - `thinking: disabled` + `effort: low` pour l'extraction — tâche simple, gain de coût/latence sans perte de qualité (validé par les evals).
+  - Contrat à 3 statuts plutôt qu'une fiche unique implicite — empêche le modèle d'halluciner une décision sur un thread ambigu.
+  - Jeu d'evals délibérément hors CI — appels API réels payants et non déterministes ; à lancer manuellement avant chaque évolution du prompt.
+  - Architecture `/decisions/new` : Server Component (garde `requireOrgUser`) + Client Component séparé (`new-decision-form.tsx`) — pattern à reproduire pour toute future page nécessitant à la fois un guard serveur et de l'interactivité client.
