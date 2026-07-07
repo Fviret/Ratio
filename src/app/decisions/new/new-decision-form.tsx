@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { createDecision } from "../actions";
 import type { DecisionCandidate, ExtractionResult } from "@/lib/extract";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+type DuplicateHit = { id: string; title: string; status: string };
 
 type Extraction = DecisionCandidate & { source_raw: string };
 
@@ -29,8 +32,38 @@ export function NewDecisionForm() {
   const [extraction, setExtraction] = useState<Extraction | null>(null);
   const [formKey, setFormKey] = useState(0);
 
+  const [titleValue, setTitleValue] = useState("");
+  const [duplicates, setDuplicates] = useState<DuplicateHit[] | null>(null);
+  const duplicateAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const trimmed = titleValue.trim();
+    if (trimmed.length < 3) return;
+    const timer = setTimeout(async () => {
+      duplicateAbortRef.current?.abort();
+      const controller = new AbortController();
+      duplicateAbortRef.current = controller;
+      try {
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: trimmed }),
+          signal: controller.signal,
+        });
+        if (!res.ok) { setDuplicates(null); return; }
+        const data = (await res.json()) as { results?: DuplicateHit[] };
+        setDuplicates(data.results?.slice(0, 3) ?? []);
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setDuplicates(null);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [titleValue]);
+
   function selectCandidate(candidate: DecisionCandidate) {
     setExtraction({ ...candidate, source_raw: threadText.trim() });
+    setTitleValue(candidate.title ?? "");
     setFormKey((k) => k + 1);
     setCandidates(null);
   }
@@ -164,7 +197,32 @@ export function NewDecisionForm() {
                 name="title"
                 required
                 defaultValue={extraction?.title ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTitleValue(val);
+                  if (val.trim().length < 3) setDuplicates(null);
+                }}
               />
+              {duplicates !== null && duplicates.length > 0 && (
+                <div className="rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm dark:border-yellow-700 dark:bg-yellow-950">
+                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
+                    ⚠️ Des décisions similaires existent déjà — vérifie avant d&apos;enregistrer.
+                  </p>
+                  <ul className="mt-1 flex flex-col gap-0.5">
+                    {duplicates.map((d) => (
+                      <li key={d.id}>
+                        <Link
+                          href={`/decisions/${d.id}`}
+                          target="_blank"
+                          className="text-yellow-700 underline underline-offset-2 hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-100"
+                        >
+                          {d.title}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">
