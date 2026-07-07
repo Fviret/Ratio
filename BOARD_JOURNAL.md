@@ -94,3 +94,12 @@ Format :
 - **Vérifié en conditions quasi réelles** : `ANTHROPIC_API_KEY` volontairement laissée vide à la demande de l'utilisateur (test de la gestion d'erreur uniquement, pas de l'appel réel) — reconnexion temporaire via le contournement documenté dans `DEV_LOGIN_BYPASS.md` (non commité) pour tester l'endpoint authentifié : texte vide → 400 propre, texte réel sans clé → 500 JSON propre (avant correctif : crash brut). Non-authentifié → redirigé par le proxy (défense en profondeur déjà en place). Contournement supprimé après test.
 - `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
 - `CLAUDE.md` mis à jour : nouvelle section "Extraction LLM".
+
+## 2026-07-06 (suite 8) — RAT-10
+
+- **[RAT-10](https://floviret.atlassian.net/browse/RAT-10) démarré et complété** : `src/app/decisions/new/page.tsx` devient un Client Component avec une zone de collage de thread au-dessus du formulaire manuel existant (RAT-5) — extraction via `/api/extract` (RAT-9), pré-remplissage éditable, sauvegarde via la même Server Action `createDecision`. `source_raw` (thread brut) ajouté à l'insertion en base.
+- Choix technique : pré-remplissage des champs via `defaultValue` + `key` incrémenté sur le `<form>` après extraction réussie (remount volontaire), plutôt que des champs contrôlés un par un — évite d'ajouter un `onChange` sur les 7 champs, le formulaire reste modifiable normalement après remplissage.
+- **Bug trouvé et corrigé en testant** : la page détail décision (`/decisions/[id]/page.tsx`) se réduisait à une largeur de 32px — même famille de piège que documenté (`mx-auto max-w-*` sans `w-full`), mais ici le conteneur n'est pas lui-même `flex` ; c'est son parent (`<body>`, `flex flex-col` dans `layout.tsx`) qui le transforme en item flex, et les marges `auto` interagissent avec l'alignement flex au lieu de centrer un bloc pleine largeur. `CLAUDE.md` généralisé : ajouter `w-full` à tout conteneur `mx-auto max-w-*` de page, flex ou non.
+- **Vérifié en conditions quasi réelles** : reconnexion temporaire via le contournement documenté (nettoyé après usage) — sans `ANTHROPIC_API_KEY`, le flux "coller un thread" affiche bien l'état de chargement puis le message d'erreur JSON (pas de crash) ; le formulaire manuel reste pleinement fonctionnel en parallèle (pas de régression RAT-5), sauvegarde et affichage détail vérifiés (donnée de test supprimée après coup).
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
+- `CLAUDE.md` mis à jour : section Décisions (CRUD) (flow d'extraction) et généralisation du piège `w-full`.

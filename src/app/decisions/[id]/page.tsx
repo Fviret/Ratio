@@ -48,7 +48,7 @@ export default async function DecisionDetailPage({
   const options = (decision.options_json as { notes?: string } | null)?.notes;
 
   return (
-    <div className="mx-auto max-w-2xl p-4 py-12">
+    <div className="mx-auto w-full max-w-2xl p-4 py-12">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2">

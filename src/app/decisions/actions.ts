@@ -26,6 +26,7 @@ export async function createDecision(formData: FormData) {
       rationale: String(formData.get("rationale") ?? "") || null,
       decider: String(formData.get("decider") ?? "") || null,
       stakeholders,
+      source_raw: String(formData.get("source_raw") ?? "") || null,
     })
     .select("id")
     .single();
