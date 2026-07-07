@@ -313,3 +313,69 @@ Format :
   - Transitions de statut en sens unique enforced côté serveur (`VALID_TRANSITIONS` map) — l'UI ne fait que refléter ce qui est autorisé (un seul bouton, disparu à l'état final).
   - Les correctifs d'accessibilité (aria-label distincts par bouton Retirer) se sont avérés fonctionnellement nécessaires pour le ciblage des boutons lors des tests automatisés — alignment rare mais heureux entre a11y et testabilité.
 - **Points de vigilance reportés** (non bloquants MVP) : pas de vérification d'unicité de lien côté UX (le doublon est rejeté par la PK composite en base, mais sans message explicite) ; transitions de statut non réversibles par design, à confirmer avec les utilisateurs en usage réel.
+
+## 2026-07-07 (suite) — Semaine 5 : CRUD complet, données de démo, landing page
+
+## 2026-07-07 (suite) — RAT-31 : édition d'une décision
+
+- **[RAT-31](https://floviret.atlassian.net/browse/RAT-31) démarré et complété** : Server Action `updateDecision` dans `actions.ts` + nouvelle route `src/app/decisions/[id]/edit/page.tsx` (Server Component pur, pré-rempli depuis la DB).
+- Bouton "Modifier" ajouté sur la page détail (`[id]/page.tsx`) via `buttonVariants({ variant: "outline", size: "sm" })` sur un `<Link>` — cohérent avec la convention shadcn/ui sans `asChild`.
+- Pattern : Server Component pour la page edit (charge la décision, `notFound()` si hors org), formulaire `action={updateDecision}`, redirection vers `[id]` après enregistrement via `redirect()`.
+
+## 2026-07-07 (suite) — RAT-32 : suppression d'une décision
+
+- **[RAT-32](https://floviret.atlassian.net/browse/RAT-32) démarré et complété** : Server Action `deleteDecision` + Client Component `delete-decision-button.tsx` avec `window.confirm` + `useRef<HTMLFormElement>` + `requestSubmit()` pour déclencher la Server Action sans `useTransition`.
+- `ON DELETE CASCADE` sur `decision_links` (FKs vers `decisions`) assure la suppression des liens associés — zéro logique applicative nécessaire pour propager.
+
+## 2026-07-07 (suite) — RAT-33 : dataset de démo
+
+- **[RAT-33](https://floviret.atlassian.net/browse/RAT-33) démarré et complété** : script `scripts/seed-demo.ts` avec 15 décisions réalistes (4 statuts, décideurs nommés, contexte/rationale remplis) + 6 liens (`supersedes` ×2, `relates_to` ×3, `conflicts_with` ×1).
+- Idempotence : tag `"demo-seed"` dans `tags text[]`, vérification `.contains("tags", [SEED_TAG])` avant insertion — le second run détecte la présence et s'arrête sans doublon.
+- Contournement Node 20 / WebSocket : `realtime: { transport: _NoopWS }` dans la config Supabase pour désactiver le module realtime qui tente d'accéder à `WebSocket` inexistant en Node 20. Lancer avec `pnpm seed-demo` (`tsx --env-file=.env.local`).
+
+## 2026-07-07 (suite) — RAT-34 : onboarding empty state + "Charger un exemple"
+
+- **[RAT-34](https://floviret.atlassian.net/browse/RAT-34) démarré et complété** : empty state sur `/decisions` (illustration + CTA "Créer ma première décision") affiché uniquement hors mode recherche et si `decisions.length === 0`. Bouton "Charger un exemple" sur `/decisions/new` : `setThreadText(DEMO_THREAD)` pré-remplit le textarea avec un thread Slack de référence (décision PostHog vs Amplitude) — permet de démontrer l'extraction LLM sans préparer de thread réel.
+
+## 2026-07-07 (suite) — RAT-35 : landing page
+
+- **[RAT-35](https://floviret.atlassian.net/browse/RAT-35) démarré et complété** : `src/app/page.tsx` réécrit en landing page publique (hero + 3 bénéfices + CTA "Demander une démo" → `/login`). Si utilisateur connecté → `redirect("/decisions")`.
+- Correctif middleware : `PUBLIC_PATHS` incluait seulement `/login` et `/auth` — ajout d'une vérification `pathname === "/"` (exact match, pas `startsWith` qui rendrait tout public).
+
+## 2026-07-07 (suite) — RAT-36 : audit de fin de Semaine 5
+
+- **[RAT-36](https://floviret.atlassian.net/browse/RAT-36) démarré et complété** : audit du code Semaine 5 par le subagent `auditeur` — 4 points importants identifiés, tous corrigés immédiatement :
+  1. `updateDecision` retournait silencieusement sur titre vide → `throw new Error("Le titre est requis")`.
+  2. `updateDecision` sans vérification d'existence avant UPDATE → ajout `.maybeSingle()` + `notFound()` (cohérent avec `updateDecisionStatus`).
+  3. Badge de statut affiché en anglais sur `[id]/page.tsx` → `STATUS_LABELS[currentStatus]`.
+  4. Badge de statut affiché en anglais dans `decisions-list.tsx` → ajout local de `STATUS_LABELS` + fallback.
+- 1 suggestion non bloquante laissée ouverte : protection contre la double soumission sur `DeleteDecisionButton` (impact nul : Supabase DELETE sur 0 lignes ne remonte pas d'erreur).
+
+## 2026-07-07 (suite) — RAT-37 : test manuel de fin de Semaine 5
+
+- **[RAT-37](https://floviret.atlassian.net/browse/RAT-37) démarré et complété** : 5 scénarios validés en prévisualisation navigateur.
+  - Édition : titre modifié en `[modifié]`, soumission, page détail affiche le nouveau titre, titre restauré ensuite.
+  - Suppression : décision "reunion du 7" (test) supprimée via `window.confirm` intercepté + `requestSubmit`, redirection vers `/decisions`, décision absente de la liste.
+  - Dataset de démo : 15 décisions visibles en liste avec statuts en français (Proposée, Décidée, Revisitée, Renversée).
+  - "Charger un exemple" : clic bouton → textarea pré-rempli avec le thread PostHog/Amplitude.
+  - Landing page : `/` → redirection vers `/decisions` pour utilisateur connecté (middleware + page.tsx vérifiés).
+- Aucune anomalie rencontrée.
+
+## 2026-07-07 (suite) — RAT-38 : clôture Semaine 5
+
+- **[RAT-38](https://floviret.atlassian.net/browse/RAT-38) démarré et complété** : journal de bord Semaine 5 rédigé, Epic [RAT-30](https://floviret.atlassian.net/browse/RAT-30) clôturé.
+- **Bilan Semaine 5** : 8 tickets livrés (RAT-31 à RAT-38), tous "Terminé".
+  - RAT-31 : édition d'une décision — formulaire pré-rempli, Server Action `updateDecision`, redirection page détail.
+  - RAT-32 : suppression — Client Component avec confirmation + `requestSubmit()`, cascade DB automatique.
+  - RAT-33 : dataset de démo — 15 décisions + 6 liens, idempotent, script `pnpm seed-demo`.
+  - RAT-34 : onboarding — empty state liste + bouton "Charger un exemple" sur formulaire nouveau.
+  - RAT-35 : landing page — `/` publique, hero + 3 bénéfices + CTA, redirection dashboard si connecté.
+  - RAT-36 : audit — 4 corrections (validation titre, vérification existence avant UPDATE, badges statut en français).
+  - RAT-37 : test manuel — 5 scénarios validés sans anomalie.
+  - RAT-38 : journal + clôture Epic.
+- **Décisions techniques notables** :
+  - Workaround Node 20 / WebSocket dans les scripts : `realtime: { transport: _NoopWS }` pour contourner l'absence de `WebSocket` natif en Node 20.
+  - Exact match `pathname === "/"` dans le middleware pour les chemins publics — `startsWith("/")` aurait rendu toutes les routes publiques.
+  - `STATUS_LABELS` défini localement dans `decisions-list.tsx` (Client Component) plutôt qu'exporté depuis `[id]/page.tsx` — évite de coupler un Client Component à un module Server Component.
+- **État du MVP à fin Semaine 5** : CRUD complet (créer, lire, éditer, supprimer), extraction LLM, recherche full-text, liens entre décisions, stepper de statut, données de démo prêtes, landing page publique. Semaine 6 : polish final et déploiement Vercel.
+- **Points de vigilance reportés** : même liste qu'en Semaine 4 (unicité de lien sans message explicite, transitions irréversibles à confirmer en usage) + suggestion de double-soumission sur DeleteDecisionButton (non bloquant).

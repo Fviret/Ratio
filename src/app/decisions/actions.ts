@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireOrgUser } from "@/lib/auth";
 
@@ -99,6 +100,65 @@ export async function updateDecisionStatus(formData: FormData) {
 
   revalidatePath(`/decisions/${id}`);
   revalidatePath("/decisions");
+}
+
+export async function deleteDecision(formData: FormData) {
+  const { supabase, orgId } = await requireOrgUser();
+
+  const id = String(formData.get("id"));
+
+  const { error } = await supabase
+    .from("decisions")
+    .delete()
+    .eq("id", id)
+    .eq("org_id", orgId);
+
+  if (error) throw error;
+
+  revalidatePath("/decisions");
+  redirect("/decisions");
+}
+
+export async function updateDecision(formData: FormData) {
+  const { supabase, orgId } = await requireOrgUser();
+
+  const id = String(formData.get("id"));
+  const title = String(formData.get("title") ?? "").trim();
+  if (!title) throw new Error("Le titre est requis");
+
+  const { data: existing, error: checkError } = await supabase
+    .from("decisions")
+    .select("id")
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (checkError) throw checkError;
+  if (!existing) notFound();
+
+  const stakeholders = String(formData.get("stakeholders") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const { error } = await supabase
+    .from("decisions")
+    .update({
+      title,
+      context: String(formData.get("context") ?? "") || null,
+      options_json: { notes: String(formData.get("options") ?? "") },
+      decision_text: String(formData.get("decision_text") ?? "") || null,
+      rationale: String(formData.get("rationale") ?? "") || null,
+      decider: String(formData.get("decider") ?? "") || null,
+      stakeholders,
+    })
+    .eq("id", id)
+    .eq("org_id", orgId);
+
+  if (error) throw error;
+
+  revalidatePath(`/decisions/${id}`);
+  revalidatePath("/decisions");
+  redirect(`/decisions/${id}`);
 }
 
 export async function unlinkDecision(formData: FormData) {

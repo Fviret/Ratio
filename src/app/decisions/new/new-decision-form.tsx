@@ -15,6 +15,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const DEMO_THREAD = `[Slack — #product — 14 juin 2026]
+
+Marc : Ok on doit trancher aujourd'hui sur le sujet analytics. On a regardé Mixpanel, Amplitude et PostHog. Mon avis : PostHog.
+
+Sarah : Pourquoi PostHog plutôt qu'Amplitude ? Les deux ont les features qu'on cherche.
+
+Marc : Deux raisons. D'abord le self-hosting : on garde nos données en EU sans friction RGPD. Ensuite le pricing : à notre volume (~200k events/mois) c'est 0€ sur le free tier vs 800€/mois chez Amplitude.
+
+Léa : Le self-hosting ça veut dire qu'on maintient l'infra nous-mêmes ?
+
+Marc : Oui mais c'est une image Docker, 30 min pour déployer sur notre cluster GCP. On a déjà fait ça pour Metabase.
+
+Sarah : Ok je suis convaincu. On part sur PostHog self-hosted. Marc tu prends en charge le déploiement cette semaine ?
+
+Marc : Oui, je l'ajoute dans le sprint.
+
+Sarah : Décidé alors. PostHog self-hosted, déployé sur GCP, Marc responsable du rollout.`;
+
 type DuplicateHit = { id: string; title: string; status: string };
 
 type Extraction = DecisionCandidate & { source_raw: string };
@@ -132,13 +150,23 @@ export function NewDecisionForm() {
             onChange={(e) => setThreadText(e.target.value)}
             placeholder="Colle le thread ici..."
           />
-          <Button
-            type="button"
-            onClick={handleExtract}
-            disabled={extracting || !threadText.trim()}
-          >
-            {extracting ? "Extraction en cours..." : "Extraire la décision"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              onClick={handleExtract}
+              disabled={extracting || !threadText.trim()}
+            >
+              {extracting ? "Extraction en cours..." : "Extraire la décision"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setThreadText(DEMO_THREAD)}
+              disabled={extracting}
+            >
+              Charger un exemple
+            </Button>
+          </div>
           {extractError && (
             <p className="text-sm text-destructive">{extractError}</p>
           )}

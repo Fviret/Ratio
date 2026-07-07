@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,6 +18,13 @@ type Decision = {
   decider: string | null;
   status: string;
   created_at: string;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  proposed: "Proposée",
+  decided: "Décidée",
+  revisited: "Revisitée",
+  reversed: "Renversée",
 };
 
 type SearchResult = Decision & { rank: number };
@@ -119,9 +127,17 @@ export function DecisionsList({ decisions }: { decisions: Decision[] }) {
       )}
 
       {!isSearchMode && decisions.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Aucune décision enregistrée pour le moment.
-        </p>
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-input py-12 text-center">
+          <div className="flex flex-col gap-1">
+            <p className="text-base font-medium">Aucune décision pour l&apos;instant</p>
+            <p className="text-sm text-muted-foreground">
+              Commence par capturer la première décision de ton équipe.
+            </p>
+          </div>
+          <Link href="/decisions/new" className={buttonVariants()}>
+            Créer ma première décision
+          </Link>
+        </div>
       )}
 
       {displayed.length > 0 && (
@@ -141,7 +157,7 @@ export function DecisionsList({ decisions }: { decisions: Decision[] }) {
                         {rankScore !== null && (
                           <Badge variant="outline">{rankScore}&nbsp;%</Badge>
                         )}
-                        <Badge variant="secondary">{decision.status}</Badge>
+                        <Badge variant="secondary">{STATUS_LABELS[decision.status] ?? decision.status}</Badge>
                       </div>
                     </div>
                     {decision.decider && (

@@ -1,6 +1,8 @@
 import { Fragment } from "react";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { requireOrgUser } from "@/lib/auth";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DecisionLinks, type LinkEntry } from "./decision-links";
+import { DeleteDecisionButton } from "./delete-decision-button";
 import { updateDecisionStatus } from "../actions";
 
 const STATUS_ORDER = ["proposed", "decided", "revisited", "reversed"] as const;
@@ -134,7 +137,16 @@ export default async function DecisionDetailPage({
         <CardHeader>
           <div className="flex items-center justify-between gap-2">
             <CardTitle>{decision.title}</CardTitle>
-            <Badge variant="secondary">{decision.status}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{STATUS_LABELS[currentStatus]}</Badge>
+              <Link
+                href={`/decisions/${id}/edit`}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Modifier
+              </Link>
+              <DeleteDecisionButton id={id} />
+            </div>
           </div>
           <CardDescription>
             {new Date(decision.created_at).toLocaleDateString("fr-FR")}
