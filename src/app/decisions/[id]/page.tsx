@@ -1,5 +1,7 @@
+import { Fragment } from "react";
 import { notFound } from "next/navigation";
 import { requireOrgUser } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -9,6 +11,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DecisionLinks, type LinkEntry } from "./decision-links";
+import { updateDecisionStatus } from "../actions";
+
+const STATUS_ORDER = ["proposed", "decided", "revisited", "reversed"] as const;
+type Status = (typeof STATUS_ORDER)[number];
+
+const STATUS_LABELS: Record<Status, string> = {
+  proposed: "Proposée",
+  decided: "Décidée",
+  revisited: "Revisitée",
+  reversed: "Renversée",
+};
+
+const NEXT_LABEL: Partial<Record<Status, string>> = {
+  proposed: "Passer en Décidée",
+  decided: "Passer en Revisitée",
+  revisited: "Passer en Renversée",
+};
+
+const NEXT_STATUS: Partial<Record<Status, Status>> = {
+  proposed: "decided",
+  decided: "revisited",
+  revisited: "reversed",
+};
 
 function Field({
   label,
@@ -94,6 +119,10 @@ export default async function DecisionDetailPage({
 
   const options = (decision.options_json as { notes?: string } | null)?.notes;
 
+  const currentStatus = decision.status as Status;
+  const currentIndex = STATUS_ORDER.indexOf(currentStatus);
+  const nextStatus = NEXT_STATUS[currentStatus];
+
   return (
     <div className="mx-auto w-full max-w-2xl p-4 py-12 flex flex-col gap-6">
       <Card>
@@ -105,6 +134,61 @@ export default async function DecisionDetailPage({
           <CardDescription>
             {new Date(decision.created_at).toLocaleDateString("fr-FR")}
           </CardDescription>
+
+          {/* Stepper */}
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center">
+              {STATUS_ORDER.map((s, i) => {
+                const done = i < currentIndex;
+                const active = i === currentIndex;
+                return (
+                  <Fragment key={s}>
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className={cn(
+                          "flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-semibold",
+                          done && "border-primary bg-primary text-primary-foreground",
+                          active && "border-primary bg-primary text-primary-foreground ring-2 ring-primary/25",
+                          !done && !active && "border-muted-foreground/25 text-muted-foreground/40",
+                        )}
+                      >
+                        {done ? "✓" : i + 1}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-xs whitespace-nowrap",
+                          (done || active) ? "font-medium" : "text-muted-foreground/40",
+                        )}
+                      >
+                        {STATUS_LABELS[s]}
+                      </span>
+                    </div>
+                    {i < STATUS_ORDER.length - 1 && (
+                      <div
+                        className={cn(
+                          "mb-4 h-0.5 flex-1 mx-1",
+                          i < currentIndex ? "bg-primary" : "bg-muted-foreground/20",
+                        )}
+                      />
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
+
+            {nextStatus && (
+              <form action={updateDecisionStatus}>
+                <input type="hidden" name="id" value={id} />
+                <input type="hidden" name="status" value={nextStatus} />
+                <button
+                  type="submit"
+                  className="rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent/50"
+                >
+                  {NEXT_LABEL[currentStatus]}
+                </button>
+              </form>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <Field label="Contexte" value={decision.context} />

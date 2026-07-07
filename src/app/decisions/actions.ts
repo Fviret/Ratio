@@ -61,6 +61,41 @@ export async function linkDecision(formData: FormData) {
   revalidatePath(`/decisions/${relatedId}`);
 }
 
+const VALID_TRANSITIONS: Record<string, string> = {
+  proposed: "decided",
+  decided: "revisited",
+  revisited: "reversed",
+};
+
+export async function updateDecisionStatus(formData: FormData) {
+  const { supabase, orgId } = await requireOrgUser();
+
+  const id = String(formData.get("id"));
+  const newStatus = String(formData.get("status"));
+
+  const { data: current } = await supabase
+    .from("decisions")
+    .select("status")
+    .eq("id", id)
+    .eq("org_id", orgId)
+    .maybeSingle();
+
+  if (!current) throw new Error("Décision introuvable");
+  if (VALID_TRANSITIONS[current.status] !== newStatus) {
+    throw new Error("Transition de statut invalide");
+  }
+
+  const { error } = await supabase
+    .from("decisions")
+    .update({ status: newStatus })
+    .eq("id", id)
+    .eq("org_id", orgId);
+  if (error) throw error;
+
+  revalidatePath(`/decisions/${id}`);
+  revalidatePath("/decisions");
+}
+
 export async function unlinkDecision(formData: FormData) {
   const { supabase, orgId } = await requireOrgUser();
 
