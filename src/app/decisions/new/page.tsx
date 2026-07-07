@@ -13,8 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-type Extraction = {
-  source_raw: string;
+type DecisionCandidate = {
   title: string;
   context: string;
   options: string;
@@ -24,12 +23,32 @@ type Extraction = {
   stakeholders: string[];
 };
 
+type Extraction = DecisionCandidate & { source_raw: string };
+
+type ExtractResponse =
+  | { error: string }
+  | {
+      status: "decision_found" | "no_clear_decision" | "multiple_decisions";
+      message: string;
+      decisions: DecisionCandidate[];
+    };
+
 export default function NewDecisionPage() {
   const [threadText, setThreadText] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [extractInfo, setExtractInfo] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<DecisionCandidate[] | null>(
+    null,
+  );
   const [extraction, setExtraction] = useState<Extraction | null>(null);
   const [formKey, setFormKey] = useState(0);
+
+  function selectCandidate(candidate: DecisionCandidate) {
+    setExtraction({ ...candidate, source_raw: threadText.trim() });
+    setFormKey((k) => k + 1);
+    setCandidates(null);
+  }
 
   async function handleExtract() {
     const text = threadText.trim();
@@ -37,21 +56,40 @@ export default function NewDecisionPage() {
 
     setExtracting(true);
     setExtractError(null);
+    setExtractInfo(null);
+    setCandidates(null);
     try {
       const res = await fetch("/api/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const data = await res.json();
+      const data: ExtractResponse = await res.json();
 
-      if (!res.ok) {
-        setExtractError(data.error ?? "Erreur lors de l'extraction.");
+      if (!res.ok || "error" in data) {
+        setExtractError(
+          "error" in data ? data.error : "Erreur lors de l'extraction.",
+        );
         return;
       }
 
-      setExtraction({ ...data, source_raw: text });
-      setFormKey((k) => k + 1);
+      if (data.status === "no_clear_decision") {
+        setExtractInfo(
+          data.message || "Aucune décision claire n'a été trouvée dans ce thread.",
+        );
+        return;
+      }
+
+      if (data.status === "multiple_decisions") {
+        setExtractInfo(
+          data.message ||
+            `${data.decisions.length} décisions distinctes ont été trouvées — choisis celle à enregistrer.`,
+        );
+        setCandidates(data.decisions);
+        return;
+      }
+
+      selectCandidate(data.decisions[0]);
     } catch {
       setExtractError("Erreur réseau lors de l'extraction.");
     } finally {
@@ -86,8 +124,34 @@ export default function NewDecisionPage() {
           {extractError && (
             <p className="text-sm text-destructive">{extractError}</p>
           )}
+          {extractInfo && (
+            <p className="text-sm text-muted-foreground">{extractInfo}</p>
+          )}
         </CardContent>
       </Card>
+
+      {candidates && candidates.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Choisis la décision à enregistrer</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {candidates.map((candidate, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => selectCandidate(candidate)}
+                className="rounded-lg border border-input p-3 text-left transition-colors hover:bg-accent/50"
+              >
+                <p className="font-medium">{candidate.title}</p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {candidate.decision_text}
+                </p>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

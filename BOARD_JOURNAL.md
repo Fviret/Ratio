@@ -103,3 +103,16 @@ Format :
 - **Vérifié en conditions quasi réelles** : reconnexion temporaire via le contournement documenté (nettoyé après usage) — sans `ANTHROPIC_API_KEY`, le flux "coller un thread" affiche bien l'état de chargement puis le message d'erreur JSON (pas de crash) ; le formulaire manuel reste pleinement fonctionnel en parallèle (pas de régression RAT-5), sauvegarde et affichage détail vérifiés (donnée de test supprimée après coup).
 - `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
 - `CLAUDE.md` mis à jour : section Décisions (CRUD) (flow d'extraction) et généralisation du piège `w-full`.
+
+## 2026-07-06 (suite 9) — RAT-11
+
+- **[RAT-11](https://floviret.atlassian.net/browse/RAT-11) démarré et complété** : gestion des cas limites de l'extraction.
+- Évolution du schéma de sortie de `/api/extract` : la réponse est désormais toujours `{ status, message, decisions[] }` (`status` ∈ `decision_found` | `no_clear_decision` | `multiple_decisions`) plutôt qu'une fiche unique implicite — le prompt système instruit explicitement le modèle à distinguer les 3 cas plutôt que d'halluciner une fiche pour un thread sans décision.
+- UI (`/decisions/new`) : message informatif (pas une erreur) quand aucune décision claire n'est trouvée ; liste de candidats sélectionnables quand plusieurs décisions distinctes sont détectées — cliquer sur un candidat pré-remplit le formulaire (même mécanisme que RAT-10), l'humain choisit laquelle enregistrer.
+- **Clé API Anthropic obtenue et configurée** (`.env.local`, jamais commitée) — nécessaire ici car le critère d'acceptation exige un test sur des exemples réels, pas seulement la gestion d'erreur structurelle (contrairement à RAT-9/RAT-10 testés sans clé).
+- **Testé en conditions réelles avec la clé, via le contournement de connexion documenté (nettoyé après usage)** sur 3 exemples :
+  - Décision claire (migration CI vers GitHub Actions) → `decision_found`, fiche correcte.
+  - Discussion sans décision tranchée (sujet reporté) → `no_clear_decision`, message pertinent, formulaire non touché.
+  - Thread avec deux décisions indépendantes (outil de CI + nom de fonctionnalité) → `multiple_decisions`, 2 candidats corrects, sélection puis pré-remplissage vérifiés dans l'UI.
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
+- `CLAUDE.md` mis à jour : section Extraction LLM (nouveau contrat de réponse).

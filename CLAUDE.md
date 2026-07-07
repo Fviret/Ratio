@@ -61,7 +61,8 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - `src/app/api/extract/route.ts` (POST, protégé — 401 si non connecté) : texte brut collé → fiche décision structurée via l'API Anthropic (`claude-sonnet-5`, choix documenté dans `RATIO_STARTER.md`), en sorties structurées (`output_config.format` avec schéma JSON strict, via `client.messages.parse()`) plutôt qu'un JSON demandé en prose — plus fiable.
 - `thinking: { type: "disabled" }` et `effort: "low"` : tâche d'extraction simple, pas besoin de raisonnement approfondi (coût/latence).
 - Toute erreur (clé API absente, erreur Anthropic, refus du modèle, sortie non structurée) retourne un JSON `{ error }` avec un code HTTP explicite — jamais de crash silencieux (contrainte explicite du ticket RAT-9). Voir `Anthropic.APIError` pour les erreurs API, catch générique en filet de sécurité pour le reste (ex. erreur de configuration/credentials).
-- Le endpoint ne persiste rien en base — il retourne uniquement la fiche extraite ; la sauvegarde (avec `org_id`/`created_by`) reste dans les Server Actions de `src/app/decisions/` (RAT-10 branchera l'UI dessus).
+- Le endpoint ne persiste rien en base — il retourne uniquement la fiche extraite ; la sauvegarde (avec `org_id`/`created_by`) reste dans les Server Actions de `src/app/decisions/`.
+- La réponse est toujours enveloppée dans `{ status, message, decisions[] }` (`status` ∈ `decision_found` | `no_clear_decision` | `multiple_decisions`) plutôt qu'une fiche unique — permet au modèle de signaler explicitement l'absence de décision ou la présence de plusieurs décisions distinctes dans un même thread, au lieu d'halluciner une fiche pour combler. `decisions` est vide, à un ou à plusieurs éléments selon le statut. Voir `src/app/decisions/new/page.tsx` pour le rendu de chaque cas (message informatif pour `no_clear_decision`, liste de candidats sélectionnables pour `multiple_decisions`).
 
 ## Conventions
 
