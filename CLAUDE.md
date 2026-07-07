@@ -70,7 +70,7 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 
 - Moteur : Postgres full-text search (`tsvector` + `websearch_to_tsquery('french', ...)` + `ts_rank`) — pas d'API externe, zéro coût variable.
 - Migration `20260707100000_add_fulltext_search.sql` : colonne `search_vector tsvector GENERATED ALWAYS AS (...) STORED` (titre + décision + contexte + rationale + décideur) avec index GIN, et fonction SQL `search_decisions(query_text, p_org_id, p_limit)` retournant les décisions triées par `rank real`.
-- Route `src/app/api/search/route.ts` (POST, protégée — 401 si non connecté) : reçoit `{ query: string }`, appelle `supabase.rpc("search_decisions", ...)`, retourne `{ results }`.
+- Route `src/app/api/search/route.ts` (POST, protégée — 401 si non connecté, 403 si org absente) : reçoit `{ query: string }` (max 500 caractères), appelle `supabase.rpc("search_decisions", { query_text, p_org_id, p_limit: 10 })`, retourne `{ results }` (tableau vide si aucun résultat). Corps JSON invalide → 400 explicite (même convention que `/api/extract`).
 - `search_vector` est mis à jour automatiquement par Postgres à chaque `INSERT`/`UPDATE` — aucun code applicatif à maintenir pour l'indexation.
 - Décision de pivotement : OpenAI `text-embedding-3-small` initialement prévu (RATIO_STARTER.md) abandonné en Semaine 3 après estimation du coût de mise en place (friction compte/billing vs. coût réel négligeable). Postgres full-text search suffisant pour le MVP ; embeddings sémantiques reportés en phase 2 si la recherche se révèle insuffisante en usage réel.
 

@@ -149,6 +149,13 @@ Format :
 - SDK `openai` désinstallé, `src/lib/embed.ts` supprimé, `actions.ts` nettoyé (pas de code d'embedding). `OPENAI_API_KEY` retirée de la stack active (reste dans `.env.example` pour traçabilité).
 - `pnpm lint`, `pnpm typecheck` et `pnpm build` passent. Migration vérifiée : local = remote (`supabase migration list`).
 
+## 2026-07-07 (suite) — RAT-18 : endpoint de recherche
+
+- **[RAT-18](https://floviret.atlassian.net/browse/RAT-18) démarré et complété** : `src/app/api/search/route.ts` (POST, protégé).
+- Reçoit `{ query: string }` (max 500 caractères), récupère l'`org_id` de l'utilisateur (403 si absent), appelle `supabase.rpc("search_decisions", { query_text, p_org_id, p_limit: 10 })`, retourne `{ results }`.
+- Même conventions de robustesse que `/api/extract` : corps JSON parsé dans un `try/catch` dédié (400 explicite), guards sur query vide et trop longue.
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent — `/api/search` apparaît dans le manifest de build.
+
 ## 2026-07-07 (suite) — RAT-14 : test manuel de fin de Semaine 2
 
 - **[RAT-14](https://floviret.atlassian.net/browse/RAT-14) démarré et complété** : test manuel du parcours complet en conditions réelles, 9 scénarios validés sans anomalie.
