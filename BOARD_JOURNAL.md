@@ -239,3 +239,77 @@ Format :
   - Contrat à 3 statuts plutôt qu'une fiche unique implicite — empêche le modèle d'halluciner une décision sur un thread ambigu.
   - Jeu d'evals délibérément hors CI — appels API réels payants et non déterministes ; à lancer manuellement avant chaque évolution du prompt.
   - Architecture `/decisions/new` : Server Component (garde `requireOrgUser`) + Client Component séparé (`new-decision-form.tsx`) — pattern à reproduire pour toute future page nécessitant à la fois un guard serveur et de l'interactivité client.
+
+## 2026-07-07 (suite) — Semaine 4 : détection de doublon, liens entre décisions, statut de décision
+
+- Création du backlog Semaine 4 — Contexte enrichi : Epic [RAT-23](https://floviret.atlassian.net/browse/RAT-23), avec [RAT-24](https://floviret.atlassian.net/browse/RAT-24) (détection de doublon), [RAT-25](https://floviret.atlassian.net/browse/RAT-25) (liens entre décisions), [RAT-26](https://floviret.atlassian.net/browse/RAT-26) (stepper de statut), [RAT-27](https://floviret.atlassian.net/browse/RAT-27) (audit), [RAT-28](https://floviret.atlassian.net/browse/RAT-28) (test manuel), [RAT-29](https://floviret.atlassian.net/browse/RAT-29) (journal).
+
+## 2026-07-07 (suite) — RAT-24 : détection de doublon à la création
+
+- **[RAT-24](https://floviret.atlassian.net/browse/RAT-24) démarré et complété** : bandeau d'avertissement de doublon sur `/decisions/new`.
+- **Implémentation** : state `titleValue` synchronisé avec l'input "Titre" via `onChange` ; `useEffect` avec debounce 500 ms et `AbortController` qui appelle `POST /api/search` (réutilisation de l'endpoint existant, sans nouveau code backend) ; si des résultats sont trouvés, bandeau jaune avec liens vers les décisions similaires. La sauvegarde reste possible — l'avertissement n'est pas bloquant.
+- **Correction lint notable** : premier jet appelait `setDuplicates(null)` directement dans le corps du `useEffect` (règle ESLint `react-hooks/set-state-in-effect`). Déplacé dans le `onChange` du champ titre.
+- `selectCandidate()` (extraction LLM) appelle aussi `setTitleValue(candidate.title)` pour déclencher la détection après pré-remplissage.
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
+
+## 2026-07-07 (suite) — RAT-25 : liens entre décisions
+
+- **[RAT-25](https://floviret.atlassian.net/browse/RAT-25) démarré et complété** : CRUD des liens entre décisions.
+- **Schéma** : table `decision_links` avec clé composite `(decision_id, related_decision_id, relation)` (pas de colonne `id` séparée) ; enum `decision_relation` (`supersedes | relates_to | conflicts_with`), déjà présents dans la migration initiale.
+- **Server Actions** dans `actions.ts` : `linkDecision` (vérifie que les deux décisions appartiennent à l'org, insère le lien, invalide les deux pages) et `unlinkDecision` (même vérification, supprime le lien). Guard anti-auto-lien (`decisionId === relatedId → throw`).
+- **Client Component `decision-links.tsx`** : affiche les liens existants (direction forward et reverse avec labels traduits : "Remplace", "Lié à", "Conflicte avec" / "Remplacée par"), formulaire d'ajout avec recherche debounce 300 ms (`AbortController`, filtre les décisions déjà liées et la décision courante), `useTransition` pour l'ajout asynchrone.
+- **Page détail** : récupère les liens dans les deux sens (`decision_id = id` et `related_decision_id = id`) en `Promise.all`, puis charge les titres des décisions liées en une seule requête `.in("id", allRelatedIds)`.
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
+
+## 2026-07-07 (suite) — RAT-26 : stepper de statut et transitions
+
+- **[RAT-26](https://floviret.atlassian.net/browse/RAT-26) démarré et complété** : stepper visuel du statut de décision et bouton de transition.
+- **Schéma** : enum `decision_status` (`proposed | decided | revisited | reversed`) avec colonne `status` dans `decisions` et migration `20260707200000_add_decision_status.sql` (défaut `proposed`).
+- **Transitions valides** : `proposed → decided → revisited → reversed` (sens unique, pas de retour). Validées côté serveur dans `updateDecisionStatus` via `VALID_TRANSITIONS: Record<string, string>`. Transition `decided` peuple aussi `decided_at`.
+- **UI** : stepper horizontal avec 4 étapes sur la page détail — étapes passées en rempli + "✓", étape active avec anneau de focus, étapes futures en grisé. Rendu avec `Fragment` (clé sur la paire cercle + connecteur) et `cn()` pour les classes conditionnelles. Un seul bouton affiché (la transition valide suivante), disparu si l'état final `reversed` est atteint.
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent. `CLAUDE.md` mis à jour.
+
+## 2026-07-07 (suite) — RAT-27 : audit de fin de Semaine 4
+
+- **[RAT-27](https://floviret.atlassian.net/browse/RAT-27) démarré et complété** : audit du code de la Semaine 4 (RAT-24 à RAT-26) via le subagent `auditeur` (lecture seule), sur `src/app/decisions/new/new-decision-form.tsx`, `src/app/decisions/actions.ts`, `src/app/decisions/[id]/decision-links.tsx`, `src/app/decisions/[id]/page.tsx`.
+- **2 points de sécurité corrigés** :
+  1. (S1) Auto-lien non bloqué côté serveur dans `linkDecision` — guard `if (decisionId === relatedId) throw` ajouté.
+  2. (S2) Transition `proposed → decided` ne peuplait pas `decided_at` — ajout du spread conditionnel `...(newStatus === "decided" ? { decided_at: new Date().toISOString() } : {})`.
+- **2 points d'isolation corrigés** :
+  1. (I1) Les requêtes SELECT de vérification dans 3 Server Actions (`linkDecision`, `updateDecisionStatus`, `unlinkDecision`) ne propagaient pas les erreurs Supabase — extraction de `checkError` + `if (checkError) throw checkError` systématique.
+  2. (I4) `unlinkDecision` ne vérifiait l'appartenance à l'org que pour `decisionId`, pas `relatedId` — changé en `.in("id", [decisionId, relatedId]).eq("org_id", orgId)` avec assertion `decisions.length !== 2`.
+- **2 points d'amélioration corrigés** :
+  1. (I2) Pas de debounce sur la recherche de liens dans `decision-links.tsx` — pattern `setTimeout` 300 ms ajouté.
+  2. (I3) Accessibilité : boutons "Retirer" sans `aria-label` distinctif (plusieurs sur la même page), select sans label. Corrigés : `aria-label={`Retirer le lien : ${link.relatedTitle}`}`, `<label htmlFor="link-relation" className="sr-only">`, `aria-label="Retirer la décision sélectionnée"` sur le bouton ×.
+- **1 bug de page corrigé** : `page.tsx` swallowait silencieusement les erreurs Supabase sur les requêtes `decision_links` (destructuration sans `error`). Corrigé : `const [{ data: fwdLinks, error: fwdError }, ...]` + `if (fwdError) throw fwdError`.
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
+
+## 2026-07-07 (suite) — RAT-28 : test manuel de fin de Semaine 4
+
+- **[RAT-28](https://floviret.atlassian.net/browse/RAT-28) démarré et complété** : test manuel du parcours complet de la Semaine 4 en conditions réelles (session authentifiée, données de test présentes en base).
+- **6 scénarios validés** :
+  1. Saisir "blocage" dans le titre → bandeau jaune "Des décisions similaires existent déjà" avec lien vers "Blocage featutre" — OK.
+  2. Créer malgré l'avertissement → décision créée normalement, redirection vers la page détail — OK.
+  3. Créer un lien entre deux décisions → lien visible sur les deux pages détail (direction forward et reverse) — OK.
+  4. Supprimer un lien → disparaît immédiatement (revalidation de cache) — OK.
+  5. Passer "Choix de la plateforme de déploiement" de `proposed` à `decided` → stepper mis à jour (✓ sur Proposée, cercle actif sur Décidée) — OK.
+  6. Transitions invalides impossibles : l'UI n'expose qu'une seule transition valide (pas de bouton "retour"), le serveur rejette toute transition hors `VALID_TRANSITIONS` — OK.
+- **Note technique** : les boutons "Retirer" et "Passer en Revisitée" étant tous deux `type="submit"`, le sélecteur `button[type="submit"]` frappait le mauvais bouton lors des tests automatisés. Le correctif d'accessibilité RAT-27 (I3) — `aria-label` sur les boutons Retirer — a résolu le problème de ciblage en même temps que le problème d'accessibilité.
+- Aucune anomalie. Aucun ticket correctif ouvert.
+
+## 2026-07-07 (suite) — RAT-29 : clôture Semaine 4
+
+- **[RAT-29](https://floviret.atlassian.net/browse/RAT-29) démarré et complété** : consolidation du journal et clôture de l'Epic [RAT-23](https://floviret.atlassian.net/browse/RAT-23) — Semaine 4 Contexte enrichi.
+- **Bilan Semaine 4** : 6 tickets livrés (RAT-24 à RAT-29), tous "Terminé".
+  - RAT-24 : détection de doublon à la création — bandeau jaune avec liens, debounce 500 ms sur `POST /api/search`.
+  - RAT-25 : liens entre décisions — CRUD complet (créer, afficher, supprimer), liens dans les deux sens sur la page détail.
+  - RAT-26 : stepper de statut — transitions `proposed → decided → revisited → reversed`, validation serveur, `decided_at` peuplé.
+  - RAT-27 : audit — 2 sécurité (auto-lien, `decided_at`), 2 isolation (propagation erreurs, vérification org des deux IDs), 2 amélioration (debounce, accessibilité), 1 bug page (erreurs swallowées).
+  - RAT-28 : test manuel — 6 scénarios validés sans anomalie.
+  - RAT-29 : journal de bord.
+- **Décisions techniques notables** :
+  - Réutilisation de `POST /api/search` pour la détection de doublon (zéro nouveau backend — l'endpoint existant suffit).
+  - Clé composite `(decision_id, related_decision_id, relation)` sur `decision_links` — pas de colonne `id` auto-incrémentée, impose d'inclure les trois champs dans chaque opération de suppression.
+  - Transitions de statut en sens unique enforced côté serveur (`VALID_TRANSITIONS` map) — l'UI ne fait que refléter ce qui est autorisé (un seul bouton, disparu à l'état final).
+  - Les correctifs d'accessibilité (aria-label distincts par bouton Retirer) se sont avérés fonctionnellement nécessaires pour le ciblage des boutons lors des tests automatisés — alignment rare mais heureux entre a11y et testabilité.
+- **Points de vigilance reportés** (non bloquants MVP) : pas de vérification d'unicité de lien côté UX (le doublon est rejeté par la PK composite en base, mais sans message explicite) ; transitions de statut non réversibles par design, à confirmer avec les utilisateurs en usage réel.
