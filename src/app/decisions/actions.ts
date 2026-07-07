@@ -43,13 +43,15 @@ export async function linkDecision(formData: FormData) {
   const relatedId = String(formData.get("related_id"));
   const relation = String(formData.get("relation"));
 
+  if (decisionId === relatedId) throw new Error("Impossible de lier une décision à elle-même");
+
   // Vérifier que les deux décisions appartiennent à l'org
-  const { data: decisions } = await supabase
+  const { data: decisions, error: checkError } = await supabase
     .from("decisions")
     .select("id")
     .in("id", [decisionId, relatedId])
     .eq("org_id", orgId);
-
+  if (checkError) throw checkError;
   if (!decisions || decisions.length !== 2) throw new Error("Décision introuvable");
 
   const { error } = await supabase
@@ -73,13 +75,13 @@ export async function updateDecisionStatus(formData: FormData) {
   const id = String(formData.get("id"));
   const newStatus = String(formData.get("status"));
 
-  const { data: current } = await supabase
+  const { data: current, error: checkError } = await supabase
     .from("decisions")
     .select("status")
     .eq("id", id)
     .eq("org_id", orgId)
     .maybeSingle();
-
+  if (checkError) throw checkError;
   if (!current) throw new Error("Décision introuvable");
   if (VALID_TRANSITIONS[current.status] !== newStatus) {
     throw new Error("Transition de statut invalide");
@@ -87,7 +89,10 @@ export async function updateDecisionStatus(formData: FormData) {
 
   const { error } = await supabase
     .from("decisions")
-    .update({ status: newStatus })
+    .update({
+      status: newStatus,
+      ...(newStatus === "decided" ? { decided_at: new Date().toISOString() } : {}),
+    })
     .eq("id", id)
     .eq("org_id", orgId);
   if (error) throw error;
@@ -103,14 +108,14 @@ export async function unlinkDecision(formData: FormData) {
   const relatedId = String(formData.get("related_id"));
   const relation = String(formData.get("relation"));
 
-  // Vérifier que la décision source appartient à l'org
-  const { data: decision } = await supabase
+  // Vérifier que les deux décisions appartiennent à l'org (I4)
+  const { data: decisions, error: checkError } = await supabase
     .from("decisions")
     .select("id")
-    .eq("id", decisionId)
-    .eq("org_id", orgId)
-    .maybeSingle();
-  if (!decision) throw new Error("Décision introuvable");
+    .in("id", [decisionId, relatedId])
+    .eq("org_id", orgId);
+  if (checkError) throw checkError;
+  if (!decisions || decisions.length !== 2) throw new Error("Décision introuvable");
 
   const { error } = await supabase
     .from("decision_links")

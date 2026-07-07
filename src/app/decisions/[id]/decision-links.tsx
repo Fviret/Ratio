@@ -39,7 +39,7 @@ export function DecisionLinks({
   const linkedIds = useMemo(() => new Set(links.map((l) => l.relatedId)), [links]);
 
   const runSearch = useCallback(
-    async (q: string) => {
+    (q: string) => {
       if (!q.trim()) {
         setResults(null);
         return;
@@ -47,30 +47,35 @@ export function DecisionLinks({
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-      setSearching(true);
-      try {
-        const res = await fetch("/api/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q }),
-          signal: controller.signal,
-        });
-        if (!res.ok) {
+
+      const timer = setTimeout(async () => {
+        setSearching(true);
+        try {
+          const res = await fetch("/api/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q }),
+            signal: controller.signal,
+          });
+          if (!res.ok) {
+            setResults([]);
+            return;
+          }
+          const data = (await res.json()) as { results?: SearchHit[] };
+          setResults(
+            data.results?.filter(
+              (r) => r.id !== decisionId && !linkedIds.has(r.id),
+            ) ?? [],
+          );
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") return;
           setResults([]);
-          return;
+        } finally {
+          if (!controller.signal.aborted) setSearching(false);
         }
-        const data = (await res.json()) as { results?: SearchHit[] };
-        setResults(
-          data.results?.filter(
-            (r) => r.id !== decisionId && !linkedIds.has(r.id),
-          ) ?? [],
-        );
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") return;
-        setResults([]);
-      } finally {
-        if (!controller.signal.aborted) setSearching(false);
-      }
+      }, 300);
+
+      return () => clearTimeout(timer);
     },
     [decisionId, linkedIds],
   );
@@ -126,6 +131,7 @@ export function DecisionLinks({
                   <input type="hidden" name="relation" value={link.relation} />
                   <button
                     type="submit"
+                    aria-label={`Retirer le lien : ${link.relatedTitle}`}
                     className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
                   >
                     Retirer
@@ -141,7 +147,9 @@ export function DecisionLinks({
       <div className="flex flex-col gap-2 rounded-md border border-dashed border-input p-3">
         <p className="text-sm font-medium">Ajouter un lien</p>
         <div className="flex gap-2">
+          <label htmlFor="link-relation" className="sr-only">Type de lien</label>
           <select
+            id="link-relation"
             value={relation}
             onChange={(e) => setRelation(e.target.value)}
             className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
@@ -168,6 +176,7 @@ export function DecisionLinks({
             <span className="truncate">{selected.title}</span>
             <button
               type="button"
+              aria-label="Retirer la décision sélectionnée"
               onClick={() => {
                 setSelected(null);
                 setQuery("");

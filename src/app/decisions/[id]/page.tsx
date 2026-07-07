@@ -72,7 +72,10 @@ export default async function DecisionDetailPage({
   if (!decision) notFound();
 
   // Liens dans les deux sens
-  const [{ data: fwdLinks }, { data: revLinks }] = await Promise.all([
+  const [
+    { data: fwdLinks, error: fwdError },
+    { data: revLinks, error: revError },
+  ] = await Promise.all([
     supabase
       .from("decision_links")
       .select("relation, related_decision_id")
@@ -82,6 +85,8 @@ export default async function DecisionDetailPage({
       .select("relation, decision_id")
       .eq("related_decision_id", id),
   ]);
+  if (fwdError) throw fwdError;
+  if (revError) throw revError;
 
   const allRelatedIds = [
     ...(fwdLinks?.map((l) => l.related_decision_id) ?? []),
