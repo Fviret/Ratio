@@ -13,7 +13,7 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - Embeddings OpenAI `text-embedding-3-small` pour la recherche sémantique
 - Déploiement Vercel
 
-Pas encore implémentés (semaine 2) : `ANTHROPIC_API_KEY` et `OPENAI_API_KEY` sont déjà dans `.env.example`/`.env.local`. Comme `SUPABASE_SERVICE_ROLE_KEY`, ce sont des clés **côté serveur uniquement** — jamais de préfixe `NEXT_PUBLIC_`, jamais d'appel direct depuis un Client Component ; elles ne doivent être lues que dans des Server Actions/Route Handlers.
+`ANTHROPIC_API_KEY` et `OPENAI_API_KEY` sont dans `.env.example`/`.env.local`. Comme `SUPABASE_SERVICE_ROLE_KEY`, ce sont des clés **côté serveur uniquement** — jamais de préfixe `NEXT_PUBLIC_`, jamais d'appel direct depuis un Client Component ; elles ne doivent être lues que dans des Server Actions/Route Handlers. `OPENAI_API_KEY` (embeddings) pas encore utilisée (semaine 3).
 
 ## Environnement
 
@@ -54,6 +54,13 @@ Pas encore implémentés (semaine 2) : `ANTHROPIC_API_KEY` et `OPENAI_API_KEY` s
 - `options_json` est un champ libre `{ notes: string }` alimenté par un simple textarea — pas de sous-formulaire structuré tant que l'extraction LLM (semaine 2) n'impose pas un schéma plus riche.
 - shadcn/ui : le `Button` de ce projet est basé sur `@base-ui/react` (pas Radix) et n'a **pas** de prop `asChild` — pour un lien qui doit avoir le style d'un bouton, appliquer `buttonVariants({...})` en `className` sur le `<Link>`, ne pas essayer `<Button asChild>`.
 - Un conteneur `flex flex-col` centré avec `mx-auto max-w-*` doit aussi porter `w-full`, sinon il se réduit à la largeur de son contenu (shrink-to-fit) au lieu de remplir la largeur max — piège rencontré sur `/decisions` et `/onboarding`.
+
+## Extraction LLM
+
+- `src/app/api/extract/route.ts` (POST, protégé — 401 si non connecté) : texte brut collé → fiche décision structurée via l'API Anthropic (`claude-sonnet-5`, choix documenté dans `RATIO_STARTER.md`), en sorties structurées (`output_config.format` avec schéma JSON strict, via `client.messages.parse()`) plutôt qu'un JSON demandé en prose — plus fiable.
+- `thinking: { type: "disabled" }` et `effort: "low"` : tâche d'extraction simple, pas besoin de raisonnement approfondi (coût/latence).
+- Toute erreur (clé API absente, erreur Anthropic, refus du modèle, sortie non structurée) retourne un JSON `{ error }` avec un code HTTP explicite — jamais de crash silencieux (contrainte explicite du ticket RAT-9). Voir `Anthropic.APIError` pour les erreurs API, catch générique en filet de sécurité pour le reste (ex. erreur de configuration/credentials).
+- Le endpoint ne persiste rien en base — il retourne uniquement la fiche extraite ; la sauvegarde (avec `org_id`/`created_by`) reste dans les Server Actions de `src/app/decisions/` (RAT-10 branchera l'UI dessus).
 
 ## Conventions
 
