@@ -181,6 +181,18 @@ Format :
 - `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
 - `CLAUDE.md` mis à jour : section Recherche (UI, normalisation du score, split Server/Client).
 
+## 2026-07-07 (suite) — RAT-20 : audit de fin de Semaine 3
+
+- **[RAT-20](https://floviret.atlassian.net/browse/RAT-20) démarré et complété** : audit du code de la Semaine 3 (RAT-17 à RAT-19) via le subagent `auditeur` (lecture seule), sur `supabase/migrations/20260707100000_add_fulltext_search.sql`, `src/app/api/search/route.ts`, `src/app/decisions/decisions-list.tsx`, `src/app/decisions/page.tsx`, `src/app/decisions/[id]/page.tsx`.
+- **Aucun point bloquant** : l'isolation multi-tenant est correcte — `org_id` toujours dérivé de la session serveur, jamais injecté par le client.
+- **4 points importants trouvés et corrigés** :
+  1. `api/search/route.ts` ligne 15 : `error` Supabase non extrait sur la requête profil — une erreur DB masquée en faux 403 "organisation introuvable". Corrigé : extraction de `profileError`, retour 500 JSON si présent.
+  2. `decisions-list.tsx` : race condition sur les requêtes concurrentes — une réponse stale pouvait écraser la dernière. Corrigé : `AbortController` par requête, abandon explicite de la précédente au début de chaque appel ; le `finally` ne met plus à jour l'état si la requête est déjà annulée.
+  3. `decisions-list.tsx` : erreurs réseau/API (4xx/5xx, fetch raté) silencieusement transformées en "aucun résultat". Corrigé : state `searchError`, message d'erreur explicite affiché à la place.
+  4. `decisions-list.tsx` : `<input type="search">` sans label accessible (WCAG 1.3.1). Corrigé : `<label htmlFor="decisions-search" className="sr-only">` associé à l'input ; `aria-live="polite"` ajouté sur le conteneur des résultats.
+- **Suggestions notées, non corrigées** (non bloquantes pour le MVP) : SECURITY INVOKER + search_path non déclarés dans la fonction SQL ; EXECUTE PUBLIC par défaut sur `search_decisions` (à restreindre à `authenticated` en même temps que l'activation de RLS en phase 2) ; stop-words français retournent 0 résultat sans explication ; `source_raw` affiché en intégralité sans troncature ; normalisation du score peut afficher de très faibles pourcentages.
+- `pnpm lint`, `pnpm typecheck` passent.
+
 ## 2026-07-07 (suite) — RAT-15 : clôture Semaine 2
 
 - **[RAT-15](https://floviret.atlassian.net/browse/RAT-15) démarré et complété** : consolidation du journal et clôture de l'Epic [RAT-8](https://floviret.atlassian.net/browse/RAT-8) — Semaine 2 Extraction LLM.

@@ -12,11 +12,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("org_id")
     .eq("id", user.id)
     .maybeSingle();
+  if (profileError) {
+    console.error("Erreur récupération profil:", profileError);
+    return NextResponse.json({ error: "erreur serveur" }, { status: 500 });
+  }
   if (!profile?.org_id) {
     return NextResponse.json({ error: "organisation introuvable" }, { status: 403 });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,25 +25,42 @@ export function DecisionsList({ decisions }: { decisions: Decision[] }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const runSearch = useCallback(async (q: string) => {
     if (!q.trim()) {
       setResults(null);
+      setSearchError(null);
       return;
     }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setSearching(true);
+    setSearchError(null);
     try {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: q }),
+        signal: controller.signal,
       });
-      const data = (await res.json()) as { results?: SearchResult[] };
-      setResults(data.results ?? []);
-    } catch {
+      const data = (await res.json()) as { results?: SearchResult[]; error?: string };
+      if (!res.ok) {
+        setSearchError(data.error ?? "Erreur lors de la recherche.");
+        setResults([]);
+      } else {
+        setResults(data.results ?? []);
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setSearchError("Impossible de contacter le serveur.");
       setResults([]);
     } finally {
-      setSearching(false);
+      if (!controller.signal.aborted) setSearching(false);
     }
   }, []);
 
@@ -65,12 +82,19 @@ export function DecisionsList({ decisions }: { decisions: Decision[] }) {
         }}
         className="flex gap-2"
       >
+        <label htmlFor="decisions-search" className="sr-only">
+          Rechercher une décision
+        </label>
         <input
+          id="decisions-search"
           type="search"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            if (!e.target.value.trim()) setResults(null);
+            if (!e.target.value.trim()) {
+              setResults(null);
+              setSearchError(null);
+            }
           }}
           placeholder="Rechercher une décision…"
           className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -84,7 +108,11 @@ export function DecisionsList({ decisions }: { decisions: Decision[] }) {
         </button>
       </form>
 
-      {isSearchMode && results !== null && results.length === 0 && !searching && (
+      {searchError && (
+        <p className="text-sm text-destructive">{searchError}</p>
+      )}
+
+      {!searchError && isSearchMode && results !== null && results.length === 0 && !searching && (
         <p className="text-sm text-muted-foreground">
           Aucun résultat pour «&nbsp;{query}&nbsp;».
         </p>
@@ -97,7 +125,7 @@ export function DecisionsList({ decisions }: { decisions: Decision[] }) {
       )}
 
       {displayed.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" aria-live="polite">
           {displayed.map((decision) => {
             const rankScore =
               "rank" in decision && maxRank > 0
