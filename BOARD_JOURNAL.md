@@ -116,3 +116,14 @@ Format :
   - Thread avec deux décisions indépendantes (outil de CI + nom de fonctionnalité) → `multiple_decisions`, 2 candidats corrects, sélection puis pré-remplissage vérifiés dans l'UI.
 - `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
 - `CLAUDE.md` mis à jour : section Extraction LLM (nouveau contrat de réponse).
+
+## 2026-07-06 (suite 10) — RAT-12 : jeu d'evals
+
+- **[RAT-12](https://floviret.atlassian.net/browse/RAT-12) démarré et complété** : premier jeu de tests du projet, dédié à l'extraction LLM.
+- Refactor préalable : la logique d'appel Anthropic (schéma, prompt, parsing, `extractDecisions`) extraite de `src/app/api/extract/route.ts` vers `src/lib/extract.ts`, réutilisée telle quelle par le script d'evals — évite de dupliquer le prompt/schéma et garantit que l'eval teste le même code que la route HTTP en production.
+- `evals/threads.ts` : 10 threads de test couvrant les axes demandés — décision claire technique (CI/GitHub Actions), décision claire produit (nommage), décision avec rationale/stakeholders multiples, décision informelle très courte, deux variantes de discussion sans décision (reportée / questions ouvertes), thread à deux décisions, thread à trois décisions (compte-rendu multi-sujets), débat contradictoire tranché par un décideur explicite, et un cas "décision partielle" (une partie tranchée, une autre volontairement laissée ouverte — piège à hallucination).
+- `evals/run.ts` : compare la sortie réelle à la sortie attendue par thread (`status`, nombre de décisions, sous-chaînes attendues dans `decision_text`/`decider`), affiche un résumé pass/fail par thread + taux de réussite global. Lancé via `pnpm eval` (nouveau script, utilise `tsx --env-file=.env.local`).
+- **Résultat du premier run réel (avec la clé API Anthropic configurée en RAT-11)** : **10/10 threads réussis**, aucun écart constaté. À noter : échantillon volontairement restreint et rédigé par nous-mêmes (donc plus "propre" que des threads Teams/Slack réels bruités) — un score parfait ici ne garantit pas la robustesse sur des cas réels de la semaine 5/6 ; à réévaluer si des erreurs d'extraction sont rapportées en usage.
+- Décision : le jeu d'evals reste **hors CI** (appels API réels payants et non déterministes) — documenté dans `CLAUDE.md`, à lancer manuellement.
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent.
+- `CLAUDE.md` mis à jour : section Extraction LLM (evals) et section Conventions (Tests).
