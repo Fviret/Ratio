@@ -141,6 +141,14 @@ Format :
 - **Vérifié** : `pnpm lint`, `pnpm typecheck` et `pnpm build` passent (Node 20 requis, `nvm use` — un premier essai sous Node 18 par défaut avait fait échouer `pnpm build`). Testé en navigateur avec une session active : `/decisions/new` rend correctement le formulaire avec la garde serveur en place, extraction d'un thread de test (`decision_found`) réalisée sans erreur réseau ni console.
 - `CLAUDE.md` mis à jour : section Décisions (CRUD) (structure Server/Client Component de `new/`) et section Extraction LLM (`MAX_TEXT_LENGTH`, parsing du body).
 
+## 2026-07-07 (suite) — RAT-17 : infrastructure de recherche (pivot full-text)
+
+- **[RAT-17](https://floviret.atlassian.net/browse/RAT-17) démarré et complété** avec un périmètre ajusté suite à une décision de pivot.
+- **Décision : abandon d'OpenAI `text-embedding-3-small` au profit de Postgres full-text search.** Rationnel : la friction de mise en place (compte OpenAI + carte bancaire + crédit initial) ne se justifiait pas au regard du coût réel ($0,0004 pour 50 décisions) et de l'enjeu MVP. Postgres `tsvector` + `websearch_to_tsquery` est natif dans Supabase, zéro clé API, zéro coût variable, et suffisant pour un corpus de quelques dizaines de décisions. Les embeddings sémantiques sont reportés en phase 2 si la recherche plein texte se révèle insuffisante en usage réel.
+- **Migration `20260707100000_add_fulltext_search.sql` appliquée** : colonne `search_vector tsvector GENERATED ALWAYS AS (...) STORED` (titre + décision + contexte + rationale + décideur) avec index GIN, et fonction SQL `search_decisions(query_text, p_org_id, p_limit)` retournant les décisions triées par `ts_rank`.
+- SDK `openai` désinstallé, `src/lib/embed.ts` supprimé, `actions.ts` nettoyé (pas de code d'embedding). `OPENAI_API_KEY` retirée de la stack active (reste dans `.env.example` pour traçabilité).
+- `pnpm lint`, `pnpm typecheck` et `pnpm build` passent. Migration vérifiée : local = remote (`supabase migration list`).
+
 ## 2026-07-07 (suite) — RAT-14 : test manuel de fin de Semaine 2
 
 - **[RAT-14](https://floviret.atlassian.net/browse/RAT-14) démarré et complété** : test manuel du parcours complet en conditions réelles, 9 scénarios validés sans anomalie.

@@ -10,10 +10,10 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - Tailwind CSS + shadcn/ui
 - Supabase (Postgres + pgvector, région EU), Supabase Auth (magic link)
 - API Anthropic (claude-sonnet) pour l'extraction structurée thread → fiche décision
-- Embeddings OpenAI `text-embedding-3-small` pour la recherche sémantique
+- Recherche plein texte Postgres (`tsvector` + GIN + `websearch_to_tsquery`) — pas d'API externe pour les embeddings (décision Semaine 3, voir `BOARD_JOURNAL.md`)
 - Déploiement Vercel
 
-`ANTHROPIC_API_KEY` et `OPENAI_API_KEY` sont dans `.env.example`/`.env.local`. Comme `SUPABASE_SERVICE_ROLE_KEY`, ce sont des clés **côté serveur uniquement** — jamais de préfixe `NEXT_PUBLIC_`, jamais d'appel direct depuis un Client Component ; elles ne doivent être lues que dans des Server Actions/Route Handlers. `OPENAI_API_KEY` (embeddings) pas encore utilisée (semaine 3).
+`ANTHROPIC_API_KEY` est dans `.env.example`/`.env.local`. Comme `SUPABASE_SERVICE_ROLE_KEY`, c'est une clé **côté serveur uniquement** — jamais de préfixe `NEXT_PUBLIC_`, jamais d'appel direct depuis un Client Component ; elle ne doit être lue que dans des Server Actions/Route Handlers. `OPENAI_API_KEY` retirée du projet (décision Semaine 3 : bascule sur Postgres full-text search, voir `BOARD_JOURNAL.md`).
 
 ## Environnement
 
@@ -65,6 +65,14 @@ Décision-log web app pour Product Owners : capturer le *pourquoi* d'une décisi
 - La réponse est toujours enveloppée dans `{ status, message, decisions[] }` (`status` ∈ `decision_found` | `no_clear_decision` | `multiple_decisions`) plutôt qu'une fiche unique — permet au modèle de signaler explicitement l'absence de décision ou la présence de plusieurs décisions distinctes dans un même thread, au lieu d'halluciner une fiche pour combler. `decisions` est vide, à un ou à plusieurs éléments selon le statut. Voir `src/app/decisions/new/page.tsx` pour le rendu de chaque cas (message informatif pour `no_clear_decision`, liste de candidats sélectionnables pour `multiple_decisions`).
 - La logique d'appel Anthropic (schéma, prompt, parsing) vit dans `src/lib/extract.ts` (`extractDecisions`), importée à la fois par la route HTTP et par le jeu d'evals (`evals/`) — évite de dupliquer le prompt/schéma entre les deux.
 - `evals/threads.ts` (10 threads de test représentatifs) + `evals/run.ts` (comparaison automatique à la sortie attendue : `status`, nombre de décisions, sous-chaînes attendues dans `decision_text`/`decider`) — lancer avec `pnpm eval`. Résultats consignés dans `BOARD_JOURNAL.md` à chaque run notable. Volontairement **hors CI** : appels API réels payants et non déterministes, pas adaptés à un run automatique sur chaque PR.
+
+## Recherche
+
+- Moteur : Postgres full-text search (`tsvector` + `websearch_to_tsquery('french', ...)` + `ts_rank`) — pas d'API externe, zéro coût variable.
+- Migration `20260707100000_add_fulltext_search.sql` : colonne `search_vector tsvector GENERATED ALWAYS AS (...) STORED` (titre + décision + contexte + rationale + décideur) avec index GIN, et fonction SQL `search_decisions(query_text, p_org_id, p_limit)` retournant les décisions triées par `rank real`.
+- Route `src/app/api/search/route.ts` (POST, protégée — 401 si non connecté) : reçoit `{ query: string }`, appelle `supabase.rpc("search_decisions", ...)`, retourne `{ results }`.
+- `search_vector` est mis à jour automatiquement par Postgres à chaque `INSERT`/`UPDATE` — aucun code applicatif à maintenir pour l'indexation.
+- Décision de pivotement : OpenAI `text-embedding-3-small` initialement prévu (RATIO_STARTER.md) abandonné en Semaine 3 après estimation du coût de mise en place (friction compte/billing vs. coût réel négligeable). Postgres full-text search suffisant pour le MVP ; embeddings sémantiques reportés en phase 2 si la recherche se révèle insuffisante en usage réel.
 
 ## Conventions
 
