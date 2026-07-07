@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { requireOrgUser } from "@/lib/auth";
 
 export async function createDecision(formData: FormData) {
@@ -33,4 +34,57 @@ export async function createDecision(formData: FormData) {
   if (error) throw error;
 
   redirect(`/decisions/${decision.id}`);
+}
+
+export async function linkDecision(formData: FormData) {
+  const { supabase, orgId } = await requireOrgUser();
+
+  const decisionId = String(formData.get("decision_id"));
+  const relatedId = String(formData.get("related_id"));
+  const relation = String(formData.get("relation"));
+
+  // Vérifier que les deux décisions appartiennent à l'org
+  const { data: decisions } = await supabase
+    .from("decisions")
+    .select("id")
+    .in("id", [decisionId, relatedId])
+    .eq("org_id", orgId);
+
+  if (!decisions || decisions.length !== 2) throw new Error("Décision introuvable");
+
+  const { error } = await supabase
+    .from("decision_links")
+    .insert({ decision_id: decisionId, related_decision_id: relatedId, relation });
+  if (error) throw error;
+
+  revalidatePath(`/decisions/${decisionId}`);
+  revalidatePath(`/decisions/${relatedId}`);
+}
+
+export async function unlinkDecision(formData: FormData) {
+  const { supabase, orgId } = await requireOrgUser();
+
+  const decisionId = String(formData.get("decision_id"));
+  const relatedId = String(formData.get("related_id"));
+  const relation = String(formData.get("relation"));
+
+  // Vérifier que la décision source appartient à l'org
+  const { data: decision } = await supabase
+    .from("decisions")
+    .select("id")
+    .eq("id", decisionId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (!decision) throw new Error("Décision introuvable");
+
+  const { error } = await supabase
+    .from("decision_links")
+    .delete()
+    .eq("decision_id", decisionId)
+    .eq("related_decision_id", relatedId)
+    .eq("relation", relation);
+  if (error) throw error;
+
+  revalidatePath(`/decisions/${decisionId}`);
+  revalidatePath(`/decisions/${relatedId}`);
 }
