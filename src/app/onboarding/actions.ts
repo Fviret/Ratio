@@ -41,6 +41,14 @@ export async function joinOrganization(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Vérifie que l'org existe avant de rejoindre (prévient le tenant-takeover par org_id arbitraire)
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("id")
+    .eq("id", orgId)
+    .maybeSingle();
+  if (!org) throw new Error("Organisation introuvable.");
+
   const { error } = await supabase.from("users").upsert({
     id: user.id,
     email: user.email,

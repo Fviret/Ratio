@@ -18,6 +18,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Vérifie que l'utilisateur appartient à une organisation (cohérent avec /api/search)
+  const { data: dbUser } = await supabase
+    .from("users")
+    .select("org_id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!dbUser?.org_id) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
