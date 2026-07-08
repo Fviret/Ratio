@@ -38,6 +38,8 @@ async function main() {
 
   const orgId = org.id;
 
+  const forceReset = process.argv.includes("--reset");
+
   // Idempotence : vérifier si le seed a déjà été appliqué
   const { data: existing } = await supabase
     .from("decisions")
@@ -47,8 +49,22 @@ async function main() {
     .limit(1);
 
   if (existing && existing.length > 0) {
-    console.log("Données de démo déjà présentes — rien à faire.");
-    return;
+    if (!forceReset) {
+      console.log("Données de démo déjà présentes. Utilise --reset pour tout réinitialiser.");
+      return;
+    }
+    console.log("Suppression des données de démo existantes…");
+    const ids = (await supabase
+      .from("decisions")
+      .select("id")
+      .eq("org_id", orgId)
+      .contains("tags", [SEED_TAG])).data?.map((d) => d.id) ?? [];
+    if (ids.length > 0) {
+      await supabase.from("decision_links").delete().in("decision_id", ids);
+      await supabase.from("decision_links").delete().in("related_decision_id", ids);
+      await supabase.from("decisions").delete().in("id", ids);
+    }
+    console.log(`${ids.length} décisions supprimées.`);
   }
 
   console.log(`Insertion des décisions de démo dans l'org "${DEMO_ORG_NAME}"…`);
