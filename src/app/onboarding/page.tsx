@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Bienvenue" };
-import { createOrganization, joinOrganization } from "./actions";
+import { createOrganization } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -29,12 +29,6 @@ export default async function OnboardingPage() {
   if (existingUserError) throw existingUserError;
   if (existingUser?.org_id) redirect("/");
 
-  const { data: organizations, error: organizationsError } = await supabase
-    .from("organizations")
-    .select("id, name")
-    .order("name");
-  if (organizationsError) throw organizationsError;
-
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center gap-6 p-4">
       <Card>
@@ -52,32 +46,6 @@ export default async function OnboardingPage() {
           </form>
         </CardContent>
       </Card>
-
-      {organizations && organizations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Rejoindre une organisation existante</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form action={joinOrganization} className="flex flex-col gap-4">
-              <select
-                name="org_id"
-                required
-                className="border-input h-9 rounded-md border bg-transparent px-3 text-sm"
-              >
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-              <Button type="submit" variant="outline">
-                Rejoindre
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
