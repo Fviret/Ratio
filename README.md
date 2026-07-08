@@ -27,14 +27,6 @@ Colle un thread Teams ou Slack → Claude Sonnet 5 extrait une fiche structurée
 
 ---
 
-## Démo
-
-Une instance de démo publique est disponible — aucune connexion requise :
-
-**[ratio-ntxmqwwxe-ratio1.vercel.app/demo](https://ratio-ntxmqwwxe-ratio1.vercel.app/demo)**
-
----
-
 ## Stack technique
 
 | Couche | Choix |
@@ -47,37 +39,6 @@ Une instance de démo publique est disponible — aucune connexion requise :
 | Emails | Resend (SMTP custom) |
 | Déploiement | Vercel |
 | CI | GitHub Actions — lint + typecheck + build sur chaque PR |
-
-Coût estimé en production : **0–15 €/mois** (free tiers + quelques euros d'API LLM).
-
----
-
-## Lancer le projet en local
-
-**Prérequis :** Node.js 20 (`nvm use`), pnpm
-
-```bash
-pnpm install
-cp .env.example .env.local  # remplir les variables
-pnpm dev
-```
-
-**Variables d'environnement nécessaires** (voir `.env.example`) :
-
-```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-ANTHROPIC_API_KEY=
-DEMO_ORG_ID=           # optionnel — active la route /demo publique
-```
-
-**Appliquer le schéma de base de données :**
-
-```bash
-supabase link --project-ref <ref>
-supabase db push
-```
 
 ---
 
@@ -94,25 +55,6 @@ L'objectif : prouver qu'un PO sans équipe dédiée peut livrer un MVP productio
 
 ---
 
-## Évaluation de l'extraction LLM
+## Demander une démo
 
-Un jeu d'evals couvre 10 threads de test avec sorties attendues :
-
-```bash
-pnpm eval
-```
-
-Volontairement hors CI — appels API réels, non déterministes.
-
----
-
-## Contexte & roadmap
-
-Ratio est un MVP. La définition du succès :
-
-- Démo de 5 min réalisée devant ≥ 5 Product Owners
-- ≥ 2 PO disent *"je l'utiliserais demain dans mon équipe"*
-- Article LinkedIn case study publié
-- Backlog v2 priorisé sur vrais retours terrain
-
-Phase 2 (si go) : bot Teams, RLS multi-tenant renforcée, digest hebdo email.
+Pas d'accès public — contacte-moi sur [LinkedIn](https://www.linkedin.com/in/florian-viret/) pour une démo guidée de 5 minutes.
