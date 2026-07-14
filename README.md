@@ -3,6 +3,11 @@
 > La mémoire des décisions produit — capturée en 2 minutes, retrouvée en quelques secondes, resurfacée au moment où elle compte.
 
 ---
+<p align="center">
+<img width="500" alt="Capture d’écran 2026-07-14 à 17 47 31" src="https://github.com/user-attachments/assets/deb9127a-3c4b-431d-bfa4-990af956b4a1" />
+<img width="500" alt="Capture d’écran 2026-07-14 à 17 47 16" src="https://github.com/user-attachments/assets/eb6392d3-b69c-4575-9186-7542abcca485" />
+<img width="500" alt="Capture d’écran 2026-07-14 à 17 47 57" src="https://github.com/user-attachments/assets/6502b231-ce81-486c-8bf0-6036dd460495" />
+</p>
 
 ## Le problème
 
